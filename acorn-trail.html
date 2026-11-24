@@ -144,9 +144,15 @@ button.stop:hover .pip{border-color:#fff}
 .stat .n{font-family:'Baloo 2',sans-serif;font-size:2.2rem;font-weight:800;line-height:1}
 .key{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
 .key div{background:#fff;border-radius:14px;padding:10px 14px;border:2px solid var(--soft)}
-.dice-grid{display:grid;grid-template-columns:200px 220px 1fr;gap:24px;margin-top:14px;align-items:start}
+.dice-grid{display:grid;grid-template-columns:230px 220px 1fr;gap:24px;margin-top:14px;align-items:start}
 .verbs{margin:0;padding-left:1.6em;font-size:1.3rem;font-weight:700;line-height:1.8}
-.verbs li.cur{color:var(--maple)}
+.verbs li.cur button{color:var(--maple);text-decoration:underline;text-underline-offset:4px}
+.verbs button{border:0;background:none;font:inherit;color:inherit;padding:0 .2em;border-radius:6px;text-align:left}
+.verbs li.done button{color:var(--moss)}
+.verbs li.done::marker{color:var(--moss)}
+.jprog{display:flex;flex-wrap:wrap;gap:6px}
+.jc{background:var(--soft);border-radius:999px;padding:.15em .7em;font-weight:700;font-size:.95rem;color:#7a6350}
+.jc.on{background:#d4ebc1;color:#2f4a16}
 .dice-center{display:flex;flex-direction:column;align-items:center;gap:14px}
 .sent{font-size:1.3rem;margin:0 0 10px}
 .sent .blank{display:inline-block;min-width:4.5em;border-bottom:3px solid var(--bark);text-align:center;font-weight:800;color:var(--moss)}
@@ -493,7 +499,7 @@ const H = {peer:null, code:null, online:false, students:new Map(), joinCount:0, 
            showNames:false, raf:0, dotT:null, sortStart:null, sortTick:null, codeRot:0, codeSpinning:false, codeUsed:[],
            rolling:false, hidePara:false, skyView:null, skySpotImg:null, galKey:''};
 let S = {stage:'lobby', fibI:0, fibPhase:'listen', fibText:false, fibRev:false, sortRound:1, sortGo:0, sortRev:false,
-         letters:{}, unlocked:false, diceId:0, diceN:0, diceRev:false, spyId:0, spyIdx:-1, spySpin:false, spyRev:false, lesson:null, skySpot:null};
+         letters:{}, unlocked:false, diceId:0, diceN:0, diceRev:false, diceDone:{}, diceCheck:null, spyId:0, spyIdx:-1, spySpin:false, spyRev:false, lesson:null, skySpot:null};
 
 function startHost(){
   if(typeof Peer === 'undefined'){ app.innerHTML = `<div class="center"><p class="status">PeerJS didn’t load. Check the internet connection and reload.</p></div>`; return; }
@@ -732,24 +738,49 @@ TV.sort = {
 };
 function sortLeft(){ if(S.sortRev) return ''; if(!S.sortGo || !H.sortStart) return SORT_SECONDS; return Math.max(0, Math.ceil(SORT_SECONDS - (Date.now()-H.sortStart)/1000)); }
 
+function diceAllDone(d){ return [1,2,3,4,5,6].every(n=>d[n]); }
+function diceCount(d){ return [1,2,3,4,5,6].filter(n=>d[n]).length; }
+function diceDonePatch(done, patch){
+  patch.diceDone = done;
+  if(diceAllDone(done) && !S.letters.dice){ patch.letters = {...S.letters, dice:true}; H.fresh = 'dice'; toast('📓 Journal decoded! Letter O earned.'); }
+  return patch;
+}
 TV.dice = {
   mount(el){
     el.innerHTML = `<section class="panel">
-      <div class="row between wrap"><div><h2>Owl’s Journal: Time-Travel Dice</h2><p class="sub">Roll the die. Students flip the verb into the past by tapping the right word.</p></div><button class="btn alt" data-next type="button">Go to the Code Wheel</button></div>
+      <div class="row between wrap"><div><h2>Owl’s Journal: Time-Travel Dice</h2><p class="sub">Roll, then reveal. If more than half of the students who answered get it right, that verb gets a ✓. Keep rolling until all 6 are cracked. The die only lands on verbs that still need a ✓. Tap a verb to check or uncheck it yourself.</p></div><button class="btn alt" data-next type="button">Go to the Code Wheel</button></div>
       <div class="dice-grid">
-        <ol class="verbs" id="dVerbs">${VERBS.slice(1).map(v=>`<li>${v.p}</li>`).join('')}</ol>
+        <div><ol class="verbs" id="dVerbs"></ol><p class="sub" id="dProg"></p></div>
         <div class="dice-center"><div id="dDie">${dieHTML(0,true)}</div><button class="btn big" id="dRoll" type="button">Roll the die</button></div>
         <div><div id="dSent"></div><div id="dTally"></div><button class="btn gold mt" id="dRev" type="button">Reveal answer</button></div>
       </div></section>`;
     $('#dRoll', el).onclick = () => {
-      if(H.rolling) return; H.rolling = true;
+      const pool = [1,2,3,4,5,6].filter(n=>!S.diceDone[n]);
+      if(H.rolling || !pool.length) return; H.rolling = true; hostRender();
       const tick = setInterval(()=>{ $('#dDie').innerHTML = dieHTML(1+Math.floor(Math.random()*6), true); }, 90);
-      setTimeout(()=>{ clearInterval(tick); H.rolling=false; setS({diceId:S.diceId+1, diceN:1+Math.floor(Math.random()*6), diceRev:false}); }, 1000);
+      setTimeout(()=>{ clearInterval(tick); H.rolling=false; setS({diceId:S.diceId+1, diceN:pool[Math.floor(Math.random()*pool.length)], diceRev:false, diceCheck:null}); }, 1000);
     };
-    $('#dRev', el).onclick = () => setS({diceRev:!S.diceRev});
+    $('#dRev', el).onclick = () => {
+      if(S.diceRev){ setS({diceRev:false}); return; }
+      const v = VERBS[S.diceN]; if(!v) return;
+      const ans = online().filter(s=>s.dice && s.dice.id===S.diceId);
+      const right = ans.filter(s=>s.dice.choice===v.past).length;
+      const ok = ans.length > 0 && right*2 > ans.length;
+      const done = ok ? {...S.diceDone, [S.diceN]:true} : S.diceDone;
+      setS(diceDonePatch(done, {diceRev:true, diceCheck: ok ? 'yes' : 'no'}));
+    };
+    $('#dVerbs', el).onclick = e => {
+      const b = e.target.closest('[data-v]'); if(!b) return;
+      const n = +b.dataset.v; setS(diceDonePatch({...S.diceDone, [n]:!S.diceDone[n]}, {}));
+    };
   },
   update(el){
-    [...$('#dVerbs', el).children].forEach((li,i)=>li.classList.toggle('cur', i+1===S.diceN));
+    $('#dVerbs', el).innerHTML = VERBS.slice(1).map((v,i)=>{ const n=i+1, d=S.diceDone[n];
+      return `<li class="${n===S.diceN?'cur':''} ${d?'done':''}"><button type="button" data-v="${n}" aria-pressed="${!!d}">${d ? `${v.p} → ${v.past} ✓` : v.p}</button></li>`; }).join('');
+    const all = diceAllDone(S.diceDone);
+    $('#dProg', el).textContent = all ? '📓 Journal decoded!' : `${diceCount(S.diceDone)} of 6 cracked`;
+    $('#dRoll', el).disabled = all || H.rolling;
+    $('#dRoll', el).textContent = all ? 'All 6 cracked!' : (S.diceN ? 'Roll again' : 'Roll the die');
     if(!H.rolling) $('#dDie', el).innerHTML = dieHTML(S.diceN, true);
     const v = VERBS[S.diceN];
     $('#dRev', el).hidden = !v; $('#dRev', el).textContent = S.diceRev ? 'Hide answer' : 'Reveal answer';
@@ -757,11 +788,16 @@ TV.dice = {
     $('#dSent', el).innerHTML = `<p class="sent">${esc(v.t)}</p><p class="sent">${esc(v.y[0])} <span class="blank">${S.diceRev?v.past:'?'}</span> ${esc(v.y[1])}</p>`;
     const ans = online().filter(s=>s.dice && s.dice.id===S.diceId);
     const max = Math.max(1, online().length);
+    let result = '';
+    if(S.diceRev) result = S.diceCheck==='yes'
+      ? `<p class="reveal">✓ Most detectives got it! <b>${v.p} → ${v.past}</b> is cracked.${all ? ' That’s all 6. The journal is decoded!' : ' Roll again.'}</p>`
+      : `<p class="reveal">Not yet. Fewer than half got <b>${v.p} → ${v.past}</b>, so it stays in the journal. Roll again and it may come back.</p>`;
     $('#dTally', el).innerHTML = v.opts.map(o=>{ const n = ans.filter(s=>s.dice.choice===o).length;
       return `<div class="bar ${S.diceRev&&o===v.past?'right':''}"><span>${o}${S.diceRev&&o===v.past?' ✓':''}</span><div class="track"><div class="fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`; }).join('')
-      + `<p class="sub">${ans.length} of ${online().length} answered</p>`;
+      + `<p class="sub">${ans.length} of ${online().length} answered</p>` + result;
   }
 };
+
 
 const LessonT = {
   mount(el){
@@ -860,14 +896,14 @@ TV.sky = {
   },
   update(el){
     const subs = [...H.students.values()].filter(s=>s.sky).sort((a,b)=>a.sky.at-b.sky.at);
-    $('#kCount', el).textContent = `Night skies sent: ${subs.length} of ${online().length}`;
+    $('#kCount', el).textContent = `Star maps sent: ${subs.length} of ${online().length}`;
     const key = subs.map(s=>s.sid+s.sky.at).join('|') + H.skyView + H.showNames + (S.skySpot?S.skySpot.id:'');
     if(key === H.galKey) return; H.galKey = key;
-    $('#kGal', el).innerHTML = subs.length ? subs.map(s=>`<button class="thumb ${s.sid===H.skyView?'sel':''}" data-sid="${esc(s.sid)}" type="button"><img src="${s.sky.img}" alt="Night sky drawing by ${esc(label(s,'Artist'))}"><span>${esc(label(s,'Artist'))}</span></button>`).join('')
-      : `<div class="empty">Drawings appear here as students send them.</div>`;
+    $('#kGal', el).innerHTML = subs.length ? subs.map(s=>`<button class="thumb ${s.sid===H.skyView?'sel':''}" data-sid="${esc(s.sid)}" type="button"><img src="${s.sky.img}" alt="Star map by ${esc(label(s,'Artist'))}"><span>${esc(label(s,'Artist'))}</span></button>`).join('')
+      : `<div class="empty">Star maps appear here as students send them.</div>`;
     const st = H.students.get(H.skyView);
-    $('#kView', el).innerHTML = st && st.sky ? `<img src="${st.sky.img}" alt="Selected drawing"><div class="row between wrap"><b>${esc(label(st,'Artist'))}</b><div class="row gap">${S.skySpot?'<button class="btn alt" id="kStop" type="button">Stop showing</button>':''}<button class="btn gold" id="kShow" type="button">Show to class</button></div></div>`
-      : (S.skySpot ? `<div class="spotbox"><span>A drawing is on everyone’s screen.</span><button class="btn alt" id="kStop" type="button">Stop showing</button></div>` : '');
+    $('#kView', el).innerHTML = st && st.sky ? `<img src="${st.sky.img}" alt="Selected star map"><div class="row between wrap"><b>${esc(label(st,'Artist'))}</b><div class="row gap">${S.skySpot?'<button class="btn alt" id="kStop" type="button">Stop showing</button>':''}<button class="btn gold" id="kShow" type="button">Show to class</button></div></div>`
+      : (S.skySpot ? `<div class="spotbox"><span>A star map is on everyone’s screen.</span><button class="btn alt" id="kStop" type="button">Stop showing</button></div>` : '');
   }
 };
 
@@ -889,6 +925,7 @@ TV.wrap = {
   }
 };
 
+
 /* ================================================================
    STUDENT
    ================================================================ */
@@ -905,7 +942,7 @@ function showJoin(room, err){
     <label>First name<input id="jName" maxlength="16" autocomplete="off" value="${esc(ss.get('at_name')||'')}"></label>
     <label>Room code<input id="jRoom" maxlength="5" autocomplete="off" autocapitalize="characters" value="${esc(room||'')}"></label>
     <p class="err" id="jErr" role="alert">${esc(err||'')}</p>
-    <button class="btn big" id="jGo" type="button">Join the trail</button>
+    <button class="btn big" id="jGo" type="button">Join the case</button>
   </div></div>`;
   const go = () => {
     const name = cleanName($('#jName').value), code = $('#jRoom').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -914,7 +951,7 @@ function showJoin(room, err){
     if(typeof Peer === 'undefined'){ $('#jErr').textContent = 'The page didn’t finish loading. Reload and try again.'; return; }
     P.name = name; P.room = code; ss.set('at_name', name);
     P.sid = ss.get('at_sid') || ('s' + Math.random().toString(36).slice(2,10)); ss.set('at_sid', P.sid);
-    app.innerHTML = `<div class="center"><p class="status">🌰 Walking to the trailhead…</p></div>`;
+    app.innerHTML = `<div class="center"><p class="status">🔎 Opening the case file…</p></div>`;
     sConnect();
   };
   $('#jGo').onclick = go;
@@ -962,7 +999,10 @@ function sMsg(m){
   if(m.t === 'state'){
     const prev = SS; SS = m.S;
     if(!P.joined){ P.joined = true; sShell(); }
-    if(prev){ for(const [st,l] of LOCK) if(SS.letters && SS.letters[st] && !(prev.letters||{})[st]){ P.fresh = st; toast('🔓 Your class earned the letter ' + l + '!'); } if(SS.unlocked && !prev.unlocked) toast('🔓 The lock is open!'); }
+    if(prev){
+      for(const [st,l] of LOCK) if(SS.letters && SS.letters[st] && !(prev.letters||{})[st]){ P.fresh = st; toast('🔓 Your class earned the letter ' + l + '!'); }
+      if(SS.unlocked && !prev.unlocked) toast('🔓 The lock is open!');
+    }
     if(!prev || prev.fibI !== SS.fibI){ P.dot = null; if(prev) stopSpeech(); }
     if(!P.sort || P.sort.round !== SS.sortRound) P.sort = {round:SS.sortRound, go:0, order:shuffle(SORT_WORDS.map(w=>w.w)), place:{}, sel:null, done:false, end:0};
     if(SS.sortGo && P.sort.go !== SS.sortGo){ P.sort.go = SS.sortGo; P.sort.place = {}; P.sort.sel = null; P.sort.done = false; P.sort.end = Date.now() + SORT_SECONDS*1000; startSortTick(); }
@@ -986,7 +1026,7 @@ function sShell(){
     <main id="sMain"></main>
   </div>
   <div class="overlay" id="sOverlay" hidden></div>`;
-  P.mounted = null; P.trailFor = null;
+  P.mounted = null; P.trailFor = null; P.caseKey = null;
 }
 function sRender(){
   if(!$('#sMain')) sShell();
@@ -1010,7 +1050,7 @@ function sOverlay(){
   if(!o.hidden && o.dataset.id === String(SS.skySpot.id)) return;
   o.dataset.id = SS.skySpot.id; o.hidden = false;
   o.innerHTML = `<div class="panel"><div class="row between"><h2>🌙 Featured star map</h2><button class="btn alt" id="oClose" type="button">Close</button></div>
-    <img src="${P.spotImg.img}" alt="Featured night sky drawing"><p class="sub">By ${esc(SS.skySpot.label)}</p></div>`;
+    <img src="${P.spotImg.img}" alt="Featured star map drawing"><p class="sub">By ${esc(SS.skySpot.label)}</p></div>`;
   $('#oClose').onclick = () => { P.spotClosed = SS.skySpot.id; sOverlay(); };
 }
 
@@ -1054,6 +1094,7 @@ SV.fib = {
     if(ask) paintMap(el, P.dots, P.dot, SS.fibRev, q.a);
   }
 };
+
 
 function startSortTick(){
   clearInterval(P.sortTick);
@@ -1109,27 +1150,38 @@ SV.sort = {
   }
 };
 
+
 SV.dice = {
   mount(el){
-    el.innerHTML = `<section class="panel"><h2>📓 Owl’s Journal</h2><div id="dBox"></div></section>`;
+    el.innerHTML = `<section class="panel"><div class="row between wrap"><h2>📓 Owl’s Journal</h2><div class="jprog" id="dProg"></div></div><div id="dBox"></div></section>`;
     $('#dBox', el).addEventListener('click', e => {
       const b = e.target.closest('[data-o]'); if(!b || SS.diceRev) return;
       P.diceChoice = b.dataset.o; sendHost({t:'dice', id:SS.diceId, choice:P.diceChoice}); SV.dice.update(el);
     });
   },
   update(el){
-    const v = VERBS[SS.diceN], box = $('#dBox', el);
-    if(!v){ box.innerHTML = `<div class="waitcard"><div class="big" aria-hidden="true">🎲</div><h2>Waiting for the roll…</h2><p class="sub" style="margin:auto">Get ready to send a verb back in time!</p></div>`; return; }
+    const done = SS.diceDone || {};
+    $('#dProg', el).innerHTML = VERBS.slice(1).map((v,i)=> done[i+1] ? `<span class="jc on">${v.past} ✓</span>` : `<span class="jc">${v.p}</span>`).join('');
+    const v = VERBS[SS.diceN], box = $('#dBox', el), all = diceAllDone(done);
+    if(!v){ box.innerHTML = `<div class="waitcard"><div class="big" aria-hidden="true">🎲</div><h2>Waiting for the roll…</h2><p class="sub" style="margin:auto">Crack all 6 verbs to decode Owl’s journal!</p></div>`; return; }
     const opts = shuffle(v.opts, SS.diceId*7919 + SS.diceN);
     const cls = o => SS.diceRev ? (o===v.past ? 'right' : (o===P.diceChoice ? 'wrong' : '')) : (o===P.diceChoice ? 'pick' : '');
+    let result = '';
+    if(SS.diceRev){
+      const you = P.diceChoice===v.past ? '🌰 Yes! ' : '';
+      result = SS.diceCheck==='yes'
+        ? `<p class="reveal">${you}<b>${v.p} → ${v.past}</b>. The class cracked it! ✓ ${all ? 'All 6 verbs are cracked. Owl’s journal is decoded!' : 'Get ready for the next roll.'}</p>`
+        : `<p class="reveal">${you}<b>${v.p} → ${v.past}</b>. Not enough detectives got it yet, so it stays in the journal. It may come back!</p>`;
+    }
     box.innerHTML = `<div class="dicewrap">${dieHTML(SS.diceN)}<div>
         <p class="sent">${esc(v.t)}</p>
         <p class="sent">${esc(v.y[0])} <span class="blank">${SS.diceRev ? v.past : (P.diceChoice||'?')}</span> ${esc(v.y[1])}</p></div></div>
       <p class="sub mt">Tap the past-tense word.</p>
       <div class="opts">${opts.map(o=>`<button class="opt ${cls(o)}" data-o="${o}" type="button" ${SS.diceRev?'disabled':''}>${o}</button>`).join('')}</div>
-      ${SS.diceRev ? `<p class="reveal">${P.diceChoice===v.past ? '🌰 Yes! ' : ''}<b>${v.p} → ${v.past}</b>. This verb doesn’t use -ed in the past.</p>` : ''}`;
+      ${result}`;
   }
 };
+
 
 const LessonS = {
   mount(el){
