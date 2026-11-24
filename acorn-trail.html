@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acorn Trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{
+  --dusk:#261B36; --dusk2:#3A2A4F; --line:#6D5888;
+  --birch:#FFF6E6; --soft:#F1E2C6; --bark:#3A2619;
+  --maple:#C2412D; --mustard:#E6A532; --moss:#557530; --lake:#3F6E99;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:'Atkinson Hyperlegible',system-ui,sans-serif;font-size:17px;line-height:1.45;
+  color:var(--birch);min-height:100vh;
+  background:
+    radial-gradient(900px 500px at 85% -10%,#6a3f55 0%,transparent 60%),
+    radial-gradient(700px 400px at 0% 110%,#3d4a2a 0%,transparent 60%),
+    linear-gradient(180deg,#2C1F3F,#1D1528);
+}
+h1,h2,h3,.disp{font-family:'Baloo 2',system-ui,sans-serif;line-height:1.1;margin:0;font-weight:800}
+h2{font-size:1.7rem} h3{font-size:1.2rem}
+p{margin:.3em 0}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--mustard);outline-offset:2px}
+.btn{border:0;border-radius:999px;padding:.6em 1.25em;font-weight:700;background:var(--maple);color:#fff;font-size:1rem;white-space:nowrap}
+.btn.gold{background:var(--mustard);color:var(--bark)}
+.btn.moss{background:var(--moss)}
+.btn.lake{background:var(--lake)}
+.btn.alt{background:transparent;color:var(--bark);box-shadow:inset 0 0 0 2px var(--bark)}
+.btn.big{font-size:1.25rem;padding:.7em 1.6em}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.panel{background:var(--birch);color:var(--bark);border-radius:22px;padding:22px;box-shadow:0 10px 0 rgba(0,0,0,.18)}
+.row{display:flex;align-items:center}
+.between{justify-content:space-between}.end{justify-content:flex-end}.wrap{flex-wrap:wrap}
+.gap{gap:10px}.row.between{gap:12px}
+.mt{margin-top:14px}
+.sub{color:#6b5443;max-width:62ch}
+.err{color:var(--maple);font-weight:700;min-height:1.4em}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--bark);color:#fff;padding:.7em 1.2em;border-radius:14px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+#toast.show{opacity:1}
+
+/* Trail strip */
+.trail{display:flex;align-items:flex-start;overflow-x:auto;padding:6px 2px 4px}
+.stop{flex:1;min-width:78px;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;background:none;border:0;color:#cdbbdc;font-size:.82rem;text-align:center;padding:4px 2px;line-height:1.15}
+.stop::before{content:'';position:absolute;top:24px;right:50%;width:100%;border-top:3px dotted var(--line);z-index:0}
+.stop:first-child::before{display:none}
+.stop .pip{width:42px;height:42px;border-radius:50%;background:var(--dusk2);display:grid;place-items:center;font-size:1.25rem;position:relative;z-index:1;border:2px solid var(--line);transition:transform .2s}
+.stop.done .pip{background:var(--moss);border-color:var(--moss)}
+.stop.done::before,.stop.now::before{border-top-style:solid;border-color:var(--moss)}
+.stop.now .pip{background:var(--mustard);border-color:#FFF0C8;transform:scale(1.15)}
+.stop.now{color:#fff;font-weight:700}
+.stop small{opacity:.7}
+button.stop:hover .pip{border-color:#fff}
+
+/* Landing & join */
+.center{min-height:100vh;display:grid;place-items:center;padding:20px}
+.hero{text-align:center;max-width:560px}
+.hero h1{font-size:clamp(3rem,10vw,5.5rem);color:var(--birch);letter-spacing:-.01em}
+.hero .leaves{font-size:2.6rem;letter-spacing:.2em}
+.hero p{color:#e5d6ef;font-size:1.15rem}
+.hero .row{justify-content:center;gap:14px;margin-top:22px;flex-wrap:wrap}
+.joincard{width:min(420px,100%);display:flex;flex-direction:column;gap:12px}
+.joincard h1{font-size:2.6rem}
+.joincard label{display:flex;flex-direction:column;font-weight:700;gap:4px}
+.joincard input{font:inherit;font-size:1.3rem;padding:.5em .7em;border-radius:12px;border:2px solid #cbb592;background:#fff;color:var(--bark)}
+.status{color:#e5d6ef;text-align:center;font-size:1.2rem}
+
+/* Teacher */
+.t-shell{max-width:1240px;margin:0 auto;padding:14px 18px 40px;display:flex;flex-direction:column;gap:10px}
+.t-top{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px}
+.brand h1{font-size:1.9rem}
+.brand .acorn{font-size:1.8rem}
+.t-room{margin-left:auto;font-size:1.05rem}
+.t-room b{font-family:'Baloo 2',sans-serif;font-size:1.6rem;letter-spacing:.12em;background:var(--mustard);color:var(--bark);padding:0 .45em;border-radius:10px;margin-left:6px}
+.t-count{color:#e5d6ef}
+.switch{display:flex;gap:6px;align-items:center;color:#e5d6ef;cursor:pointer}
+.switch input{width:20px;height:20px;accent-color:var(--mustard)}
+.lobby{display:grid;grid-template-columns:1.1fr 1fr;gap:26px}
+.bigcode{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:clamp(3.5rem,8vw,6rem);letter-spacing:.14em;color:var(--maple);line-height:1;margin:10px 0}
+.linkrow{display:flex;gap:8px;margin-top:6px}
+.linkrow input{flex:1;min-width:0;font:inherit;padding:.5em .7em;border-radius:999px;border:2px solid #cbb592;background:#fff;color:var(--bark)}
+.roster{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;min-height:60px;align-content:flex-start}
+.rchip{background:var(--soft);border-radius:999px;padding:.25em .8em;font-weight:700}
+.rchip.off{opacity:.4}
+.lobby .row.end{grid-column:1/-1}
+.listen{background:#fff;border-radius:18px;padding:16px 20px;border:2px solid var(--soft)}
+.para{font-size:1.35rem;line-height:1.65;max-width:62ch;margin:12px 0}
+.para mark{background:#F8D57E;color:inherit;padding:.05em .15em;border-radius:4px}
+.hiddenpara{color:#7a6350;font-style:italic;font-size:1.05rem}
+.switch.dark{color:var(--bark)}
+.case{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:rgba(255,246,230,.07);border:2px solid rgba(255,246,230,.16);border-radius:18px;padding:10px 14px}
+.case p{flex:1;min-width:240px;margin:0;font-size:1.08rem;color:#fff}
+.case .btn.light{color:var(--birch);box-shadow:inset 0 0 0 2px var(--birch)}
+.lock{display:flex;gap:6px;justify-content:center}
+.tile{width:42px;height:50px;border-radius:10px;background:var(--dusk2);border:2px solid var(--line);display:grid;place-items:center;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1rem;color:var(--bark)}
+.tile.on{background:var(--mustard);border-color:#FFF0C8;font-size:1.8rem}
+.tile.pop{animation:pop .7s ease-out}
+@keyframes pop{0%{transform:scale(.5)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
+.lock.big{margin:18px 0}
+.lock.big .tile{width:72px;height:88px;font-size:1.6rem;border-radius:14px}
+.lock.big .tile.on{font-size:3rem}
+.clue{font-size:1.6rem;font-weight:700;margin:12px 0 14px;max-width:46ch}
+.tally{display:flex;gap:16px;font-size:1.15rem;font-weight:700}
+.reveal{margin-top:14px;padding:14px 18px;border-radius:16px;background:var(--soft);font-size:1.15rem}
+.reveal b{font-family:'Baloo 2',sans-serif;font-size:1.4rem}
+.timer{font-family:'Baloo 2',sans-serif;font-size:3.4rem;font-weight:800;color:var(--maple);min-width:2.2em;text-align:right;line-height:1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}
+.stat{background:var(--soft);border-radius:16px;padding:12px 14px}
+.stat .n{font-family:'Baloo 2',sans-serif;font-size:2.2rem;font-weight:800;line-height:1}
+.key{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
+.key div{background:#fff;border-radius:14px;padding:10px 14px;border:2px solid var(--soft)}
+.dice-grid{display:grid;grid-template-columns:200px 220px 1fr;gap:24px;margin-top:14px;align-items:start}
+.verbs{margin:0;padding-left:1.6em;font-size:1.3rem;font-weight:700;line-height:1.8}
+.verbs li.cur{color:var(--maple)}
+.dice-center{display:flex;flex-direction:column;align-items:center;gap:14px}
+.sent{font-size:1.3rem;margin:0 0 10px}
+.sent .blank{display:inline-block;min-width:4.5em;border-bottom:3px solid var(--bark);text-align:center;font-weight:800;color:var(--moss)}
+.bar{display:grid;grid-template-columns:90px 1fr 34px;align-items:center;gap:8px;margin:6px 0;font-weight:700}
+.bar .track{height:22px;border-radius:999px;background:var(--soft);overflow:hidden}
+.bar .fill{height:100%;background:var(--lake);border-radius:999px;transition:width .3s}
+.bar.right .fill{background:var(--moss)}
+.wheels{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:14px 0}
+.wheelbox{display:flex;flex-direction:column;align-items:center;gap:10px;position:relative}
+.wheelbox canvas{width:min(280px,100%);height:auto}
+.wheelbox::before{content:'';position:absolute;top:-4px;left:50%;transform:translateX(-50%);border:14px solid transparent;border-top:22px solid var(--bark);z-index:1}
+.codeword{font-family:'Baloo 2',sans-serif;font-size:2rem;font-weight:800;min-height:1.3em}
+.reports{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:10px}
+.rep{background:#fff;border-radius:14px;padding:12px 14px;border:2px solid var(--soft);display:flex;flex-direction:column;gap:8px}
+.rep .who{font-weight:700;color:#7a6350;font-size:.9rem}
+.rep p{font-size:1.1rem}
+.checks{display:flex;gap:6px;flex-wrap:wrap;font-size:.9rem;font-weight:700}
+.chk{padding:.1em .6em;border-radius:999px;background:#f3d9d2;color:#8a2c1c}
+.chk.ok{background:#dbeccb;color:#2f4a16}
+.spotbox{background:var(--mustard);color:var(--bark);border-radius:16px;padding:12px 16px;display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:1.15rem;margin:8px 0}
+.sky-t{display:grid;grid-template-columns:1fr 1.3fr;gap:18px;align-items:start}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.thumb{border:3px solid transparent;border-radius:12px;padding:0;background:#fff;overflow:hidden;text-align:left;font-size:.82rem;font-weight:700;color:var(--bark)}
+.thumb img{display:block;width:100%;aspect-ratio:900/560;object-fit:cover}
+.thumb span{display:block;padding:3px 6px}
+.thumb.sel{border-color:var(--maple)}
+.viewer img{width:100%;border-radius:14px;border:2px solid var(--soft);display:block}
+.viewer .row{margin-top:10px}
+.empty{color:#7a6350;background:var(--soft);border-radius:14px;padding:18px;text-align:center}
+.wrapup{text-align:center;padding:40px 22px}
+.wrapup h2{font-size:clamp(2.4rem,6vw,3.6rem)}
+.wrapup .leaves{font-size:3rem;letter-spacing:.2em}
+
+/* Shared: map */
+.map{position:relative;display:grid;grid-template-columns:1fr 1fr;border-radius:18px;overflow:hidden;min-height:280px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.side{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:16px;text-align:center;transition:filter .3s}
+.side .em{font-size:clamp(3.5rem,9vw,5rem);line-height:1.1}
+.side b{font-family:'Baloo 2',sans-serif;font-size:2.2rem;line-height:1}
+.side small{font-size:1rem}
+.side.fact{background:linear-gradient(160deg,#F8CB72,#E2843A)}
+.side.fib{background:linear-gradient(200deg,#C3D9A9,#7EA266)}
+.map.revealed .side.dim{filter:grayscale(.9) brightness(.85)}
+.map.revealed .side.win{box-shadow:inset 0 0 0 6px var(--bark)}
+.dots{position:absolute;inset:0;pointer-events:none}
+.dot{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--dusk);border:2px solid #fff;opacity:.85}
+.dot.me{width:auto;height:auto;margin:0;transform:translate(-50%,-60%);background:none;border:0;font-size:2.3rem;opacity:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+
+/* Student */
+.s-shell{max-width:980px;margin:0 auto;padding:10px 14px 40px;display:flex;flex-direction:column;gap:8px}
+.s-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.s-top .disp{font-size:1.5rem}
+.me{display:flex;align-items:center;gap:8px;font-weight:700}
+.conn{width:12px;height:12px;border-radius:50%;background:#d1593f}
+.conn.on{background:#8BC34A}
+.waitcard{text-align:center;padding:34px 20px}
+.waitcard .big{font-size:3.4rem}
+.waitcard h2{font-size:2rem;margin:6px 0}
+.tray{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;min-height:64px;padding:12px;border-radius:16px;background:var(--soft);margin:12px 0}
+.chip{border:0;border-radius:12px;padding:.4em .9em;font-size:1.4rem;font-weight:700;background:#fff;color:var(--bark);box-shadow:0 3px 0 #c9b38f;transition:transform .12s}
+.chip.sel{background:var(--mustard);transform:translateY(-3px)}
+.chip.ok{background:#d4ebc1;box-shadow:0 3px 0 #8fb36f}
+.chip.no{background:#f6cbc0;box-shadow:0 3px 0 #d98f7d}
+.buckets{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bucket{border:3px dashed #c9b38f;border-radius:18px;min-height:190px;padding:12px;background:#fff;display:flex;flex-direction:column;gap:8px;align-items:center;color:var(--bark);text-align:center}
+.bucket.ready{border-color:var(--maple);border-style:solid}
+.bucket .bh{font-family:'Baloo 2',sans-serif;font-size:2.4rem;font-weight:800;line-height:1}
+.bucket .bs{font-size:.95rem;color:#6b5443}
+.bucket .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.die{width:110px;height:110px;background:#fff;border-radius:22px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:14px;box-shadow:0 6px 0 #c9b38f;border:2px solid var(--soft)}
+.die i{width:20px;height:20px;border-radius:50%;background:var(--maple);place-self:center;visibility:hidden}
+.die i.on{visibility:visible}
+.die.big{width:150px;height:150px;padding:20px}
+.die.big i{width:26px;height:26px}
+.opts{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+.opt{border:0;border-radius:16px;background:#fff;color:var(--bark);font-size:1.6rem;font-weight:800;font-family:'Baloo 2',sans-serif;padding:.4em 1.1em;box-shadow:0 4px 0 #c9b38f}
+.opt.pick{background:var(--mustard)}
+.opt.right{background:#cfe8b9;box-shadow:0 4px 0 #8fb36f}
+.opt.wrong{background:#f6cbc0;box-shadow:0 4px 0 #d98f7d}
+.dicewrap{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.codes{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.code{background:var(--dusk);color:var(--mustard);font-family:'Baloo 2',sans-serif;font-size:1.9rem;font-weight:800;padding:.1em .8em;border-radius:12px;letter-spacing:.04em}
+textarea{width:100%;font:inherit;font-size:1.3rem;padding:.6em .8em;border-radius:14px;border:2px solid #cbb592;min-height:110px;resize:vertical;color:var(--bark)}
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+.toolset{display:flex;gap:6px;flex-wrap:wrap}
+.tool{border:2px solid #d8c4a2;background:#fff;color:var(--bark);border-radius:12px;padding:4px 10px;font-size:1.2rem;display:flex;align-items:center;gap:5px}
+.tool span{font-size:.85rem;font-weight:700}
+.tool[aria-pressed="true"]{background:var(--mustard);border-color:var(--bark)}
+.swatches{display:flex;gap:5px;flex-wrap:wrap}
+.sw{width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #d8c4a2}
+.sw.sel{box-shadow:0 0 0 3px var(--bark);transform:scale(1.1)}
+.stamps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.stamp{border:2px solid var(--maple);background:#fff;color:var(--bark);border-radius:999px;padding:4px 12px;font-weight:700}
+.stamp.sel{background:var(--maple);color:#fff}
+.canvaswrap canvas{width:100%;height:auto;display:block;border-radius:14px;border:2px solid #d8c4a2;touch-action:none;background:#fff}
+.overlay{position:fixed;inset:0;background:rgba(20,12,28,.82);display:grid;place-items:center;padding:20px;z-index:40}
+.overlay .panel{max-width:900px;width:100%;max-height:92vh;overflow:auto}
+.overlay img{width:100%;border-radius:14px;display:block;margin:10px 0}
+@media (max-width:820px){
+  .lobby,.sky-t,.dice-grid{grid-template-columns:1fr}
+  .clue{font-size:1.3rem}
+  .wheels{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .buckets{grid-template-columns:1fr}
+  .panel{padding:16px;border-radius:18px}
+  .map{min-height:220px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+/* ============ CONTENT ============ */
+const ROOM_PREFIX = 'acorntrail-';
+const STAGES = [
+  {id:'lobby', short:'Case File', icon:'📁', min:0},
+  {id:'fib',   short:'Witnesses', icon:'🗣️', min:5},
+  {id:'sort',  short:'Root Door', icon:'🚪', min:3},
+  {id:'dice',  short:'Owl’s Journal', icon:'📓', min:3},
+  {id:'spy',   short:'Spy Report', icon:'🕵️', min:4},
+  {id:'sky',   short:'Star Map', icon:'🌙', min:5},
+  {id:'wrap',  short:'The Lock', icon:'🔓', min:0}
+];
+const FIB = [
+  {icon:'🐿️', title:'Squirrel Alarms', a:'fact',
+   para:'In fall, gray squirrels are busy burying nuts for winter. One squirrel can bury hundreds of nuts in many different spots. If a squirrel sees a hawk, it flicks its bushy tail and makes a loud chattering sound. Other squirrels hear the warning and run for cover.',
+   c:'Squirrels flick their tails and chatter to warn other squirrels about danger.',
+   ev:'If a squirrel sees a hawk, it flicks its bushy tail and makes a loud chattering sound.',
+   why:'The paragraph says a squirrel flicks its tail and chatters when it sees a hawk.'},
+  {icon:'🪶', title:'Geese in a V', a:'fib',
+   para:'Every fall, Canada geese fly south to find food and warmer weather. They fly together in the shape of a V. Flying this way saves energy, because each goose gets a little lift from the goose in front of it. The geese honk as they fly, which helps the flock stay together.',
+   c:'Geese fly in a V shape because it helps them stay warm.',
+   ev:'Flying this way saves energy, because each goose gets a little lift from the goose in front of it.',
+   why:'The V shape helps geese save energy. The paragraph never says it keeps them warm.'},
+  {icon:'🐝', title:'The Waggle Dance', a:'fact',
+   para:'Honeybees cannot talk, but they can dance! When a bee finds a patch of flowers, it flies back to the hive and does a waggle dance. The direction of the dance shows the other bees which way to fly. In fall, bees work hard to store honey for the cold months.',
+   c:'A honeybee’s dance shows other bees which way to fly to find flowers.',
+   ev:'The direction of the dance shows the other bees which way to fly.',
+   why:'The paragraph says the direction of the dance tells bees which way to fly.'},
+  {icon:'🐦', title:'Clever Crows', a:'fib',
+   para:'Crows are some of the smartest birds in the world. Scientists have learned that crows can remember a person’s face for years. If a crow sees a person it thinks is dangerous, it calls out loudly. Other crows join in and scold that person too.',
+   c:'Crows forget a person’s face after one day.',
+   ev:'Scientists have learned that crows can remember a person’s face for years.',
+   why:'Crows remember faces for years, not just one day.'},
+  {icon:'🦌', title:'Deer Flags', a:'fact',
+   para:'White-tailed deer have tails that are brown on top and white underneath. When a deer senses danger, it lifts its tail high. The white fur flashes like a flag. This signal warns other deer to run.',
+   c:'Deer lift their tails to flash white fur as a warning.',
+   ev:'When a deer senses danger, it lifts its tail high.',
+   why:'The paragraph says deer lift their tails when they sense danger, and the white “flag” warns other deer.'},
+  {icon:'🐻', title:'Bears Get Ready', a:'fib',
+   para:'In fall, black bears eat and eat! They munch on berries, nuts, and acorns to build up fat for winter. Bears also make sounds to communicate. They huff, grunt, and clack their teeth when they feel nervous.',
+   c:'Black bears eat very little in fall.',
+   ev:'They munch on berries, nuts, and acorns to build up fat for winter.',
+   why:'Bears eat a lot in fall to build up fat for winter.'},
+  {icon:'🌰', title:'Chipmunk Pantries', a:'fib',
+   para:'Chipmunks gather seeds and nuts all fall. They carry the food in stretchy pouches inside their cheeks. Then they store the food in tunnels under the ground. When a chipmunk spots danger, it makes a quick “chip, chip” sound.',
+   c:'Chipmunks store their food high up in trees.',
+   ev:'Then they store the food in tunnels under the ground.',
+   why:'Chipmunks store food in tunnels under the ground, not up in trees.'},
+  {icon:'🦉', title:'Owl Duets', a:'fact',
+   para:'Great horned owls are most active at night. In fall and winter, they hoot to tell other owls, “This is my space!” A male and female owl may also hoot back and forth to each other. It sounds like they are singing a duet.',
+   c:'Owls hoot to tell other owls, “This is my space!”',
+   ev:'In fall and winter, they hoot to tell other owls, “This is my space!”',
+   why:'The paragraph says owls hoot to claim their space.'}
+];
+const LOCK = [['fib','A'],['sort','C'],['dice','O'],['spy','R'],['sky','N']];
+const STORY = {
+  lobby:'📁 Case file: Granny Squirrel’s winter acorn stash has vanished from Hollow Oak! The stash is sealed behind a 5-letter lock. Solve each stop to earn a letter.',
+  fib:'🗣️ The forest witnesses are talking. Listen to the Forest Field Guide, then decide: is the witness telling the truth, or telling a fib?',
+  sort:'🚪 A secret door in Hollow Oak’s roots has a sound lock. Sort the oi and oy words to open it.',
+  dice:'📓 Owl saw everything yesterday, but Owl’s journal is stuck in the present. Flip each verb into the past to read what happened.',
+  spy:'🦝 Ranger Raccoon needs a secret report. Use both code words so only detectives can read it.',
+  sky:'🌙 Owl’s last clue: “The stash is under the W in the sky, beside the tallest tree.” Map the night sky and mark where to dig.',
+  wrap:'🔓 Five letters, one lock. Let’s see if the case is solved!'
+};
+function lockHTML(letters, fresh, big){
+  letters = letters || {};
+  const n = LOCK.filter(([st])=>letters[st]).length;
+  return `<div class="lock ${big?'big':''}" role="img" aria-label="Lock: ${n} of 5 letters found">${LOCK.map(([st,l])=>`<span class="tile ${letters[st]?'on':''} ${fresh===st?'pop':''}">${letters[st]?l:'🔒'}</span>`).join('')}</div>`;
+}
+function endingHTML(name){
+  return `<div class="leaves" aria-hidden="true">🔓🌰🐦</div><h2>Case closed!</h2>
+    <p class="para" style="margin:14px auto">The lock clicks open. Inside Hollow Oak is a trail of blue feathers… The acorn taker was a blue jay! Blue jays carry acorns away and bury them all over the forest to eat later. They forget some of them, and those forgotten acorns can sprout into new oak trees. The jay gives back most of Granny Squirrel’s stash, and she lets it keep a few. Someday they’ll grow into brand-new oaks.</p>
+    <p class="sub" style="margin:auto;font-size:1.15rem">${name ? `Great detective work, ${esc(name)}!` : 'Great detective work, everyone!'}</p>`;
+}
+const SORT_WORDS = [
+  {w:'soil',b:'oi'},{w:'royal',b:'oy'},{w:'foil',b:'oi'},{w:'joy',b:'oy'},
+  {w:'point',b:'oi'},{w:'decoy',b:'oy'},{w:'noise',b:'oi'},{w:'enjoy',b:'oy'}
+];
+const SORT_SECONDS = 45;
+const VERBS = [null,
+  {p:'take', past:'took', opts:['took','taked','tooked'], t:'Today the squirrel takes an acorn.', y:['Yesterday the squirrel','an acorn.']},
+  {p:'sit',  past:'sat',  opts:['sat','sitted','sot'],   t:'Today the owl sits on a branch.',   y:['Yesterday the owl','on a branch.']},
+  {p:'see',  past:'saw',  opts:['saw','seed','sawed'],   t:'Today the fox sees the moon.',      y:['Yesterday the fox','the moon.']},
+  {p:'give', past:'gave', opts:['gave','gived','gaved'], t:'Today the chipmunk gives me a seed.', y:['Yesterday the chipmunk','me a seed.']},
+  {p:'eat',  past:'ate',  opts:['ate','eated','ated'],   t:'Today the deer eats an apple.',     y:['Yesterday the deer','an apple.']},
+  {p:'hide', past:'hid',  opts:['hid','hided','hidded'], t:'Today the raccoon hides in a log.', y:['Yesterday the raccoon','in a log.']}
+];
+const OI_WHEEL = ['soil','coin','point','noise','moist','spoil','join','foil'];
+const OY_WHEEL = ['joy','toy','enjoy','decoy','royal','loyal','boy','annoy'];
+const SKY_W = 900, SKY_H = 560;
+const COLORS = [
+  ['#1F2A5A','Night blue'],['#4B2E6B','Dusk purple'],['#6FA8DC','Sky blue'],['#F5D547','Star yellow'],
+  ['#EDE6CF','Moon cream'],['#E57B26','Pumpkin orange'],['#C2412D','Maple red'],['#E6A532','Golden'],
+  ['#6B4226','Bark brown'],['#4F7A2C','Moss green'],['#8C8C8C','Gray'],['#1A1A1A','Black']
+];
+const TOOLS = [['pen','✏️','Pen'],['fill','🪣','Fill'],['arrow','➡️','Arrow'],['label','🏷️','Label'],['eraser','🧽','Eraser']];
+const STAMPS = ['Moon reflects sunlight','Constellation','Star','Atmosphere','Fall tree','🌰 Dig here!'];
+const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+
+/* ============ HELPERS ============ */
+const $ = (s, el=document) => el.querySelector(s);
+const app = $('#app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ss = {get(k){try{return sessionStorage.getItem(k)}catch(e){return null}}, set(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}};
+const clamp01 = v => Math.max(0, Math.min(1, +v || 0));
+function cleanName(n){ return String(n||'').replace(/[^\p{L}\p{N} .'-]/gu,'').trim().slice(0,16) || 'Explorer'; }
+function makeCode(){ const a='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<5;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
+function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function shuffle(arr, seed){ const a=arr.slice(), r = seed ? mulberry(seed) : Math.random; for(let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+let toastT; function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'), 2600); }
+function dieHTML(n, big){ const on = PIPS[n] || []; let s=''; for(let i=0;i<9;i++) s+=`<i class="${on.includes(i)?'on':''}"></i>`; return `<div class="die ${big?'big':''}" role="img" aria-label="${n?'Die showing '+n:'Die'}">${s}</div>`; }
+function trailHTML(cur, clickable){
+  const ci = STAGES.findIndex(s=>s.id===cur);
+  return STAGES.map((s,i)=>{
+    const tag = clickable ? 'button' : 'div';
+    return `<${tag} class="stop ${i<ci?'done':''} ${i===ci?'now':''}" ${clickable?`data-go="${s.id}" type="button"`:''} ${i===ci?'aria-current="step"':''}>
+      <span class="pip">${s.icon}</span><span>${esc(s.short)}</span>${clickable&&s.min?`<small>${s.min} min</small>`:''}</${tag}>`;
+  }).join('');
+}
+function mapHTML(){
+  return `<div class="map" id="map">
+    <div class="side fact"><span class="em" aria-hidden="true">🔥</span><b>Fact</b><small>Cozy campfire: it’s true</small></div>
+    <div class="side fib"><span class="em" aria-hidden="true">🐿️</span><b>Fib</b><small>Silly squirrel: it’s made up</small></div>
+    <div class="dots" id="dots"></div></div>`;
+}
+function paintMap(el, dots, me, revealed, answer){
+  const map = $('#map', el); if(!map) return;
+  map.classList.toggle('revealed', !!revealed);
+  $('.side.fact', map).classList.toggle('dim', revealed && answer!=='fact');
+  $('.side.fib', map).classList.toggle('dim', revealed && answer!=='fib');
+  $('.side.fact', map).classList.toggle('win', revealed && answer==='fact');
+  $('.side.fib', map).classList.toggle('win', revealed && answer==='fib');
+  $('#dots', map).innerHTML = dots.map(([x,y])=>`<span class="dot" style="left:${x*100}%;top:${y*100}%"></span>`).join('')
+    + (me ? `<span class="dot me" style="left:${me.x*100}%;top:${me.y*100}%">🌰</span>` : '');
+}
+function paraHTML(q, mark){ const p = esc(q.para), e = esc(q.ev); return mark ? p.replace(e, `<mark>${e}</mark>`) : p; }
+function stopSpeech(){ try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){} document.querySelectorAll('[data-speaking]').forEach(b=>{ b.textContent=b.dataset.label; b.removeAttribute('data-speaking'); }); }
+function pickVoice(){ const vs = speechSynthesis.getVoices(); return vs.find(v=>/^en[-_]US/i.test(v.lang) && /Samantha|Google US|Aria|Jenny|Natural/i.test(v.name)) || vs.find(v=>/^en[-_]US/i.test(v.lang)) || vs.find(v=>/^en/i.test(v.lang)); }
+function toggleSpeech(text, btn){
+  if(!('speechSynthesis' in window)){ toast('This browser can’t read aloud.'); return; }
+  if(btn.hasAttribute('data-speaking')){ stopSpeech(); return; }
+  stopSpeech();
+  const u = new SpeechSynthesisUtterance(text); u.rate = .88; const v = pickVoice(); if(v) u.voice = v;
+  u.onend = u.onerror = () => { if(btn.hasAttribute('data-speaking')){ btn.textContent = btn.dataset.label; btn.removeAttribute('data-speaking'); } };
+  btn.dataset.label = btn.dataset.label || btn.textContent; btn.textContent = '⏹ Stop'; btn.setAttribute('data-speaking','');
+  speechSynthesis.speak(u);
+}
+function wordUsed(text, w){ return new RegExp('\\b'+w+'[a-z]*\\b','i').test(text||''); }
+
+/* ============ LANDING ============ */
+function showLanding(){
+  app.innerHTML = `<div class="center"><div class="hero">
+    <div class="leaves" aria-hidden="true">🍂🌰🍁</div>
+    <h1>Acorn Trail</h1>
+    <p>Granny Squirrel’s acorns are missing! Forest Detectives solve five stops to open the lock and crack the case.</p>
+    <div class="row">
+      <button class="btn big gold" id="goTeach">Open a room (teacher)</button>
+      <button class="btn big" id="goJoin">Join a room (student)</button>
+    </div></div></div>`;
+  $('#goTeach').onclick = startHost;
+  $('#goJoin').onclick = () => showJoin('');
+}
+
+/* ================================================================
+   TEACHER (HOST)
+   ================================================================ */
+const H = {peer:null, code:null, online:false, students:new Map(), joinCount:0, mounted:null, trailFor:null,
+           showNames:false, raf:0, dotT:null, sortStart:null, sortTick:null, wheelRot:{oi:0,oy:0}, spinning:{oi:false,oy:false},
+           rolling:false, hidePara:false, skyView:null, skySpotImg:null, galKey:''};
+let S = {stage:'lobby', fibI:0, fibPhase:'listen', fibText:false, fibRev:false, sortRound:1, sortGo:0, sortRev:false,
+         letters:{}, unlocked:false, diceId:0, diceN:0, diceRev:false, spyId:1, spyOi:null, spyOy:null, spySpin:null, spot:null, skySpot:null};
+
+function startHost(){
+  if(typeof Peer === 'undefined'){ app.innerHTML = `<div class="center"><p class="status">PeerJS didn’t load. Check the internet connection and reload.</p></div>`; return; }
+  H.code = ss.get('at_host_code') || makeCode();
+  hostShell();
+  openHostPeer(0);
+}
+function openHostPeer(tries){
+  if(H.peer){ try{ H.peer.destroy(); }catch(e){} }
+  H.online = false;
+  const peer = new Peer(ROOM_PREFIX + H.code);
+  H.peer = peer;
+  peer.on('open', () => { ss.set('at_host_code', H.code); H.online = true; hostRender(); });
+  peer.on('connection', conn => {
+    conn.on('data', m => hostMsg(conn, m));
+    conn.on('close', () => { for(const st of H.students.values()) if(st.conn===conn) st.online=false; hostRender(); });
+    conn.on('error', () => {});
+  });
+  peer.on('error', err => {
+    if(err.type==='unavailable-id'){
+      if(tries < 2) setTimeout(()=>openHostPeer(tries+1), 2500);
+      else { H.code = makeCode(); openHostPeer(0); }
+    } else if(['network','server-error','socket-error','socket-closed'].includes(err.type)){
+      toast('Room server connection dropped. Reconnecting…');
+    }
+    hostRender();
+  });
+  peer.on('disconnected', () => { setTimeout(()=>{ try{ if(!peer.destroyed && peer.disconnected) peer.reconnect(); }catch(e){} }, 1500); });
+  hostRender();
+}
+function online(){ return [...H.students.values()].filter(s=>s.online); }
+function label(st, kind){ return H.showNames ? st.name : (kind||'Explorer')+' '+st.n; }
+function send(conn, m){ try{ if(conn && conn.open) conn.send(m); }catch(e){} }
+function broadcast(m){ for(const st of H.students.values()) if(st.online) send(st.conn, m); }
+function setS(p){ Object.assign(S, p); broadcast({t:'state', S}); hostRender(); }
+function dotList(){ return online().filter(s=>s.dot && s.dot.q===S.fibI).map(s=>[s.dot.x, s.dot.y]); }
+function queueDots(){ if(H.dotT) return; H.dotT = setTimeout(()=>{ H.dotT=null; broadcast({t:'dots', d:dotList()}); }, 250); }
+function nextStage(){ const i = STAGES.findIndex(s=>s.id===S.stage); if(i < STAGES.length-1) goStage(STAGES[i+1].id); }
+function goStage(id){ setS({stage:id}); if(id==='fib') queueDots(); }
+
+function hostMsg(conn, m){
+  if(!m || typeof m !== 'object') return;
+  if(m.t === 'hello'){
+    const sid = String(m.sid||'').slice(0,40); if(!sid) return;
+    let st = H.students.get(sid);
+    if(!st){ st = {sid, n:++H.joinCount}; H.students.set(sid, st); }
+    st.name = cleanName(m.name); st.conn = conn; st.online = true;
+    send(conn, {t:'state', S});
+    if(S.stage==='fib') send(conn, {t:'dots', d:dotList()});
+    if(S.skySpot && H.skySpotImg) send(conn, {t:'skyimg', img:H.skySpotImg, id:S.skySpot.id});
+    hostRender(); return;
+  }
+  let st = null; for(const s of H.students.values()) if(s.conn===conn){ st=s; break; }
+  if(!st) return;
+  switch(m.t){
+    case 'dot':
+      if(S.stage==='fib' && S.fibPhase==='ask' && !S.fibRev && m.q===S.fibI){ st.dot={x:clamp01(m.x), y:clamp01(m.y), q:S.fibI}; queueDots(); hostRender(); }
+      break;
+    case 'sort':
+      if(m.round===S.sortRound){ st.sort={round:m.round, correct:+m.correct||0, total:+m.total||0, misses:Array.isArray(m.misses)?m.misses.slice(0,20).map(String):[]}; hostRender(); }
+      break;
+    case 'dice':
+      if(m.id===S.diceId && !S.diceRev){ st.dice={id:m.id, choice:String(m.choice).slice(0,20)}; hostRender(); }
+      break;
+    case 'spy':
+      if(m.id===S.spyId){ st.spy={id:m.id, text:String(m.text||'').slice(0,300)}; hostRender(); }
+      break;
+    case 'sky':
+      if(typeof m.img==='string' && m.img.startsWith('data:image/') && m.img.length < 1500000){ st.sky={img:m.img, at:Date.now()}; hostRender(); }
+      break;
+  }
+}
+
+function hostShell(){
+  app.innerHTML = `<div class="t-shell">
+    <header class="t-top">
+      <div class="brand"><span class="acorn" aria-hidden="true">🌰</span><h1>Acorn Trail</h1></div>
+      <div class="t-room" id="tRoom"></div>
+      <div class="t-count" id="tCount"></div>
+      <label class="switch"><input type="checkbox" id="tNames"> Show names</label>
+    </header>
+    <nav class="trail" id="tTrail" aria-label="Trail stops"></nav>
+    <div class="case" id="tCase"></div>
+    <main id="tMain"></main>
+  </div>`;
+  $('#tNames').onchange = e => { H.showNames = e.target.checked; H.galKey=''; hostRender(); };
+  $('#tTrail').onclick = e => { const b = e.target.closest('[data-go]'); if(b) goStage(b.dataset.go); };
+  $('#tMain').addEventListener('click', e => { if(e.target.closest('[data-next]')) nextStage(); });
+  $('#tCase').addEventListener('click', e => {
+    const b = e.target.closest('[data-award]'); if(!b) return;
+    const st = b.dataset.award, on = !S.letters[st];
+    setS({letters:{...S.letters, [st]:on}});
+    if(on){ H.fresh = st; toast('🔓 Letter ' + LOCK.find(x=>x[0]===st)[1] + ' earned!'); }
+  });
+}
+function hostRender(){ if(H.raf) return; H.raf = requestAnimationFrame(()=>{ H.raf=0; hostPaint(); }); }
+function hostPaint(){
+  if(!$('#tMain')) hostShell();
+  const n = online().length;
+  $('#tRoom').innerHTML = H.online ? `Room code <b>${H.code}</b>` : 'Opening room…';
+  $('#tCount').textContent = `${n} explorer${n===1?'':'s'} here`;
+  if(H.trailFor !== S.stage){ H.trailFor = S.stage; $('#tTrail').innerHTML = trailHTML(S.stage, true); }
+  const ck = S.stage + JSON.stringify(S.letters) + (H.fresh||'');
+  if(H.caseKey !== ck){
+    H.caseKey = ck;
+    const L = LOCK.find(x=>x[0]===S.stage);
+    $('#tCase').innerHTML = lockHTML(S.letters, H.fresh) + `<p>${esc(STORY[S.stage])}</p>`
+      + (L ? `<button class="btn ${S.letters[L[0]]?'alt light':'gold'}" data-award="${L[0]}" type="button">${S.letters[L[0]] ? '✓ Letter '+L[1]+' earned (undo)' : 'Award letter '+L[1]}</button>` : '');
+    H.fresh = null;
+  }
+  const main = $('#tMain');
+  if(H.mounted !== S.stage){ stopSpeech(); H.mounted = S.stage; main.innerHTML=''; TV[S.stage].mount(main); }
+  TV[S.stage].update(main);
+}
+
+const TV = {};
+TV.lobby = {
+  mount(el){
+    el.innerHTML = `<section class="panel lobby">
+      <div>
+        <h2>Join the case</h2>
+        <p class="sub">Students open the link, type their first name, and enter this code.</p>
+        <div class="bigcode" id="lCode"></div>
+        <div class="linkrow"><input id="lLink" readonly aria-label="Student join link"><button class="btn gold" id="lCopy" type="button">Copy link</button></div>
+      </div>
+      <div><h3 id="lHead">On the trail</h3><div class="roster" id="lRoster"></div></div>
+      <div class="row end"><button class="btn big" data-next type="button">Open the case</button></div>
+    </section>`;
+    $('#lCopy', el).onclick = () => {
+      const v = $('#lLink').value;
+      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(()=>toast('Link copied'), ()=>{ $('#lLink').select(); toast('Press Ctrl+C to copy'); });
+    };
+  },
+  update(el){
+    $('#lCode', el).textContent = H.online ? H.code : '…';
+    $('#lLink', el).value = location.origin + location.pathname + '?room=' + H.code;
+    const list = [...H.students.values()];
+    $('#lHead', el).textContent = `On the trail (${online().length})`;
+    $('#lRoster', el).innerHTML = list.length ? list.map(s=>`<span class="rchip ${s.online?'':'off'}">🍂 ${esc(label(s))}</span>`).join('')
+      : `<p class="sub">Waiting for explorers…</p>`;
+  }
+};
+
+TV.fib = {
+  mount(el){
+    el.innerHTML = `<section class="panel">
+      <div class="row between wrap"><h2 id="fNum"></h2>
+        <div class="row gap wrap"><button class="btn alt" id="fPrev" type="button">Back</button><button class="btn" id="fNext" type="button">Next witness</button></div></div>
+      <div class="listen mt">
+        <div class="row between wrap"><h3 id="fTitle"></h3>
+          <div class="row gap wrap"><button class="btn lake" id="fSpeak" type="button" data-label="🔊 Read it aloud">🔊 Read it aloud</button>
+            <button class="btn alt" id="fHide" type="button"></button></div></div>
+        <p class="para" id="fPara"></p>
+        <label class="switch dark"><input type="checkbox" id="fText"> Students can read the paragraph on their screen</label>
+      </div>
+      <div class="row between wrap mt"><p class="sub" id="fHelp"></p><button class="btn gold big" id="fAsk" type="button"></button></div>
+      <div id="fQ" hidden>
+        <p class="sub mt">The witness says:</p>
+        <p class="clue" id="fClue" style="margin-top:2px"></p>
+        ${mapHTML()}
+        <div class="row between wrap mt"><div class="tally" id="fTally"></div><button class="btn gold" id="fRev" type="button">Reveal answer</button></div>
+        <div class="reveal" id="fRevBox" hidden></div>
+      </div>
+      <div class="row end mt"><button class="btn alt" data-next type="button">Go to the Root Door</button></div>
+    </section>`;
+    const jump = i => { stopSpeech(); for(const s of H.students.values()) s.dot=null; setS({fibI:i, fibPhase:'listen', fibRev:false}); queueDots(); };
+    $('#fPrev', el).onclick = () => { if(S.fibI>0) jump(S.fibI-1); };
+    $('#fNext', el).onclick = () => { if(S.fibI < FIB.length-1) jump(S.fibI+1); else { stopSpeech(); nextStage(); } };
+    $('#fSpeak', el).onclick = e => toggleSpeech(FIB[S.fibI].para, e.currentTarget);
+    $('#fHide', el).onclick = () => { H.hidePara = !H.hidePara; hostRender(); };
+    $('#fText', el).onchange = e => setS({fibText:e.target.checked});
+    $('#fAsk', el).onclick = () => { stopSpeech(); setS({fibPhase: S.fibPhase==='ask' ? 'listen' : 'ask', fibRev:false}); };
+    $('#fRev', el).onclick = () => setS({fibRev:!S.fibRev});
+  },
+  update(el){
+    const q = FIB[S.fibI], ask = S.fibPhase==='ask', dots = dotList();
+    $('#fNum', el).textContent = `Witness ${S.fibI+1} of ${FIB.length}`;
+    $('#fTitle', el).textContent = `📗 Forest Field Guide: ${q.icon} ${q.title}`;
+    $('#fPara', el).innerHTML = H.hidePara && !S.fibRev ? '<span class="hiddenpara">Paragraph hidden on this screen. Tap “Show on my screen” to read it.</span>' : paraHTML(q, S.fibRev);
+    $('#fHide', el).textContent = H.hidePara ? 'Show on my screen' : 'Hide on my screen';
+    $('#fText', el).checked = !!S.fibText;
+    $('#fPrev', el).disabled = S.fibI===0;
+    $('#fNext', el).textContent = S.fibI < FIB.length-1 ? 'Next witness' : 'Go to the Root Door';
+    $('#fAsk', el).textContent = ask ? 'Back to listening' : 'Ask the question';
+    $('#fAsk', el).className = ask ? 'btn alt' : 'btn gold big';
+    $('#fHelp', el).textContent = ask ? 'Students are choosing Fact or Fib.' : 'Read the paragraph aloud, or tap “Read it aloud.” Students see a listening screen and can replay it on their own device.';
+    $('#fQ', el).hidden = !ask;
+    if(!ask) return;
+    $('#fClue', el).textContent = q.c;
+    paintMap(el, dots, null, S.fibRev, q.a);
+    const fact = dots.filter(d=>d[0]<.5).length;
+    $('#fTally', el).innerHTML = `<span>🔥 Fact: ${fact}</span><span>🐿️ Fib: ${dots.length-fact}</span><span style="color:#7a6350">${dots.length} of ${online().length} dropped</span>`;
+    $('#fRev', el).textContent = S.fibRev ? 'Hide answer' : 'Reveal answer';
+    const box = $('#fRevBox', el); box.hidden = !S.fibRev;
+    box.innerHTML = `<b>${q.a==='fact'?'🔥 Fact!':'🐿️ Fib!'}</b> ${esc(q.why)} The highlighted sentence is the proof.`;
+  }
+};
+
+TV.sort = {
+  mount(el){
+    el.innerHTML = `<section class="panel">
+      <div class="row between wrap"><div><h2>The Root Door: oi / oy Sound Lock</h2>
+        <p class="sub">Students tap a word, then tap its bucket. <b>oi</b> is inside a syllable (soil). <b>oy</b> is at the end of a syllable (joy, roy-al).</p></div>
+        <div class="timer" id="sTimer" aria-live="off"></div></div>
+      <div class="row gap wrap mt"><button class="btn" id="sGo" type="button">Start 45-second sort</button><button class="btn gold" id="sRev" type="button">Reveal answers</button><button class="btn alt" id="sNew" type="button">New round</button></div>
+      <div class="stats" id="sStats"></div>
+      <div id="sKey"></div>
+      <div class="row end"><button class="btn alt" data-next type="button">Go to Owl’s Journal</button></div>
+    </section>`;
+    $('#sGo', el).onclick = () => { H.sortStart = Date.now(); setS({sortGo:Date.now(), sortRev:false}); };
+    $('#sRev', el).onclick = () => setS({sortRev:true});
+    $('#sNew', el).onclick = () => { H.sortStart = null; setS({sortRound:S.sortRound+1, sortGo:0, sortRev:false}); };
+    clearInterval(H.sortTick);
+    H.sortTick = setInterval(()=>{ const t=$('#sTimer'); if(!t) { clearInterval(H.sortTick); return; } t.textContent = sortLeft(); }, 250);
+  },
+  update(el){
+    $('#sTimer', el).textContent = sortLeft();
+    $('#sGo', el).disabled = !!S.sortGo;
+    $('#sRev', el).disabled = !S.sortGo || S.sortRev;
+    const done = online().filter(s=>s.sort && s.sort.round===S.sortRound);
+    let c=0, t=0; const miss = {};
+    done.forEach(s=>{ c+=s.sort.correct; t+=s.sort.total; s.sort.misses.forEach(w=>miss[w]=(miss[w]||0)+1); });
+    const tricky = Object.entries(miss).sort((a,b)=>b[1]-a[1]).slice(0,4);
+    $('#sStats', el).innerHTML = `
+      <div class="stat"><div class="n">${done.length} / ${online().length}</div>finished</div>
+      <div class="stat"><div class="n">${t?Math.round(c/t*100)+'%':'–'}</div>words sorted correctly</div>
+      <div class="stat"><div class="n" style="font-size:1.4rem">${tricky.length?tricky.map(([w,n])=>`${esc(w)} (${n})`).join(', '):'–'}</div>trickiest words</div>`;
+    $('#sKey', el).innerHTML = S.sortRev ? `<div class="key">
+      <div><b>🎯 oi: inside a syllable</b><br>${SORT_WORDS.filter(w=>w.b==='oi').map(w=>w.w).join(', ')}</div>
+      <div><b>🏁 oy: end of a syllable</b><br>${SORT_WORDS.filter(w=>w.b==='oy').map(w=>w.w).join(', ')}</div></div>` : '';
+  }
+};
+function sortLeft(){ if(S.sortRev) return ''; if(!S.sortGo || !H.sortStart) return SORT_SECONDS; return Math.max(0, Math.ceil(SORT_SECONDS - (Date.now()-H.sortStart)/1000)); }
+
+TV.dice = {
+  mount(el){
+    el.innerHTML = `<section class="panel">
+      <div class="row between wrap"><div><h2>Owl’s Journal: Time-Travel Dice</h2><p class="sub">Roll the die. Students flip the verb into the past by tapping the right word.</p></div><button class="btn alt" data-next type="button">Go to the Spy Report</button></div>
+      <div class="dice-grid">
+        <ol class="verbs" id="dVerbs">${VERBS.slice(1).map(v=>`<li>${v.p}</li>`).join('')}</ol>
+        <div class="dice-center"><div id="dDie">${dieHTML(0,true)}</div><button class="btn big" id="dRoll" type="button">Roll the die</button></div>
+        <div><div id="dSent"></div><div id="dTally"></div><button class="btn gold mt" id="dRev" type="button">Reveal answer</button></div>
+      </div></section>`;
+    $('#dRoll', el).onclick = () => {
+      if(H.rolling) return; H.rolling = true;
+      const tick = setInterval(()=>{ $('#dDie').innerHTML = dieHTML(1+Math.floor(Math.random()*6), true); }, 90);
+      setTimeout(()=>{ clearInterval(tick); H.rolling=false; setS({diceId:S.diceId+1, diceN:1+Math.floor(Math.random()*6), diceRev:false}); }, 1000);
+    };
+    $('#dRev', el).onclick = () => setS({diceRev:!S.diceRev});
+  },
+  update(el){
+    [...$('#dVerbs', el).children].forEach((li,i)=>li.classList.toggle('cur', i+1===S.diceN));
+    if(!H.rolling) $('#dDie', el).innerHTML = dieHTML(S.diceN, true);
+    const v = VERBS[S.diceN];
+    $('#dRev', el).hidden = !v; $('#dRev', el).textContent = S.diceRev ? 'Hide answer' : 'Reveal answer';
+    if(!v){ $('#dSent', el).innerHTML = `<p class="sent">Roll to pick a verb.</p>`; $('#dTally', el).innerHTML=''; return; }
+    $('#dSent', el).innerHTML = `<p class="sent">${esc(v.t)}</p><p class="sent">${esc(v.y[0])} <span class="blank">${S.diceRev?v.past:'?'}</span> ${esc(v.y[1])}</p>`;
+    const ans = online().filter(s=>s.dice && s.dice.id===S.diceId);
+    const max = Math.max(1, online().length);
+    $('#dTally', el).innerHTML = v.opts.map(o=>{ const n = ans.filter(s=>s.dice.choice===o).length;
+      return `<div class="bar ${S.diceRev&&o===v.past?'right':''}"><span>${o}${S.diceRev&&o===v.past?' ✓':''}</span><div class="track"><div class="fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`; }).join('')
+      + `<p class="sub">${ans.length} of ${online().length} answered</p>`;
+  }
+};
+
+TV.spy = {
+  mount(el){
+    el.innerHTML = `<section class="panel">
+      <div class="row between wrap"><div><h2>Royal Soil Spy Code</h2><p class="sub">Spin both wheels. Detectives write one report sentence for Ranger Raccoon that uses both code words.</p></div>
+        <div class="row gap wrap"><button class="btn alt" id="yNew" type="button">New mission</button><button class="btn alt" data-next type="button">Go to the Star Map</button></div></div>
+      <div class="wheels">
+        <div class="wheelbox"><canvas id="wOi" width="300" height="300" aria-label="oi word wheel"></canvas><button class="btn" id="bOi" type="button">Spin the oi wheel</button><div class="codeword" id="cOi"></div></div>
+        <div class="wheelbox"><canvas id="wOy" width="300" height="300" aria-label="oy word wheel"></canvas><button class="btn lake" id="bOy" type="button">Spin the oy wheel</button><div class="codeword" id="cOy"></div></div>
+      </div>
+      <div id="ySpot"></div>
+      <h3 id="yCount"></h3>
+      <div class="reports" id="yReports"></div>
+    </section>`;
+    drawWheel($('#wOi', el), OI_WHEEL, H.wheelRot.oi, ['#C2412D','#E6A532']);
+    drawWheel($('#wOy', el), OY_WHEEL, H.wheelRot.oy, ['#3F6E99','#557530']);
+    $('#bOi', el).onclick = () => spin('oi');
+    $('#bOy', el).onclick = () => spin('oy');
+    $('#yNew', el).onclick = () => setS({spyId:S.spyId+1, spyOi:null, spyOy:null, spot:null});
+    $('#yReports', el).onclick = e => {
+      const b = e.target.closest('[data-spot]'); if(!b) return;
+      const st = H.students.get(b.dataset.spot); if(!st || !st.spy) return;
+      setS({spot:{text:st.spy.text, label: H.showNames ? st.name : 'Agent '+st.n}});
+    };
+    $('#ySpot', el).onclick = e => { if(e.target.closest('#yClear')) setS({spot:null}); };
+  },
+  update(el){
+    $('#cOi', el).textContent = S.spyOi || ' ';
+    $('#cOy', el).textContent = S.spyOy || ' ';
+    $('#bOi', el).disabled = H.spinning.oi; $('#bOy', el).disabled = H.spinning.oy;
+    $('#ySpot', el).innerHTML = S.spot ? `<div class="spotbox"><span>📣 On everyone’s screen: “${esc(S.spot.text)}” (${esc(S.spot.label)})</span><button class="btn alt" id="yClear" type="button">Stop showing</button></div>` : '';
+    const reps = online().filter(s=>s.spy && s.spy.id===S.spyId && s.spy.text.trim());
+    $('#yCount', el).textContent = `Spy reports: ${reps.length} of ${online().length}`;
+    $('#yReports', el).innerHTML = reps.map(s=>{
+      const chk = [S.spyOi, S.spyOy].filter(Boolean).map(w=>`<span class="chk ${wordUsed(s.spy.text,w)?'ok':''}">${wordUsed(s.spy.text,w)?'✓':'✗'} ${esc(w)}</span>`).join('');
+      return `<div class="rep"><span class="who">${esc(label(s,'Agent'))}</span><p>${esc(s.spy.text)}</p><div class="row between"><div class="checks">${chk}</div><button class="btn gold" data-spot="${esc(s.sid)}" type="button">Spotlight</button></div></div>`;
+    }).join('');
+  }
+};
+function drawWheel(cv, words, rot, cols){
+  const c = cv.getContext('2d'), R = 145, cx = 150, cy = 150, seg = Math.PI*2/words.length;
+  c.clearRect(0,0,300,300);
+  words.forEach((w,i)=>{
+    c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,R,rot+i*seg,rot+(i+1)*seg); c.closePath();
+    c.fillStyle = cols[i%2]; c.fill(); c.strokeStyle='#FFF6E6'; c.lineWidth=3; c.stroke();
+    c.save(); c.translate(cx,cy); c.rotate(rot+(i+.5)*seg); c.textAlign='right'; c.textBaseline='middle';
+    c.fillStyle = cols[i%2]==='#E6A532' ? '#3A2619' : '#fff'; c.font = 'bold 22px "Baloo 2", sans-serif'; c.fillText(w, R-14, 1); c.restore();
+  });
+  c.beginPath(); c.arc(cx,cy,20,0,Math.PI*2); c.fillStyle='#3A2619'; c.fill();
+}
+function spin(kind){
+  if(H.spinning[kind]) return;
+  const words = kind==='oi' ? OI_WHEEL : OY_WHEEL, cols = kind==='oi' ? ['#C2412D','#E6A532'] : ['#3F6E99','#557530'];
+  const seg = Math.PI*2/words.length, idx = Math.floor(Math.random()*words.length);
+  const start = H.wheelRot[kind];
+  const target = 1.5*Math.PI - (idx+.5)*seg + (Math.random()-.5)*seg*.6;
+  const k = Math.ceil((start + 8*Math.PI - target)/(2*Math.PI));
+  const end = target + 2*Math.PI*k, dur = 3200, t0 = performance.now();
+  H.spinning[kind] = true; setS({spySpin:kind, ['spy'+(kind==='oi'?'Oi':'Oy')]:null});
+  const frame = now => {
+    const p = Math.min(1, (now-t0)/dur), e = 1 - Math.pow(1-p, 3);
+    H.wheelRot[kind] = start + (end-start)*e;
+    const cv = $(kind==='oi' ? '#wOi' : '#wOy'); if(cv) drawWheel(cv, words, H.wheelRot[kind], cols);
+    if(p < 1) requestAnimationFrame(frame);
+    else { H.wheelRot[kind] = end % (2*Math.PI); H.spinning[kind] = false; setS({spySpin:null, ['spy'+(kind==='oi'?'Oi':'Oy')]:words[idx]}); }
+  };
+  requestAnimationFrame(frame);
+}
+
+TV.sky = {
+  mount(el){
+    H.galKey = '';
+    el.innerHTML = `<section class="panel">
+      <div class="row between wrap"><div><h2>Star Map: Autumn Night Sky</h2><p class="sub">Students color the scene, draw 3 arrows, add 3 labels (moon reflects sunlight, constellation, atmosphere), and mark where to dig with the “🌰 Dig here!” label. The W of stars is Cassiopeia. Tap a picture to look closer or share it.</p></div><button class="btn alt" data-next type="button">Go to the lock</button></div>
+      <h3 id="kCount" class="mt"></h3>
+      <div class="sky-t mt"><div class="gallery" id="kGal"></div><div class="viewer" id="kView"></div></div>
+    </section>`;
+    $('#kGal', el).onclick = e => { const b = e.target.closest('[data-sid]'); if(b){ H.skyView = b.dataset.sid; H.galKey=''; hostRender(); } };
+    $('#kView', el).onclick = e => {
+      if(e.target.closest('#kShow')){
+        const st = H.students.get(H.skyView); if(!st || !st.sky) return;
+        H.skySpotImg = st.sky.img; const id = Date.now();
+        setS({skySpot:{id, label: H.showNames ? st.name : 'Artist '+st.n}});
+        broadcast({t:'skyimg', img:H.skySpotImg, id});
+      }
+      if(e.target.closest('#kStop')){ H.skySpotImg = null; setS({skySpot:null}); }
+    };
+  },
+  update(el){
+    const subs = [...H.students.values()].filter(s=>s.sky).sort((a,b)=>a.sky.at-b.sky.at);
+    $('#kCount', el).textContent = `Night skies sent: ${subs.length} of ${online().length}`;
+    const key = subs.map(s=>s.sid+s.sky.at).join('|') + H.skyView + H.showNames + (S.skySpot?S.skySpot.id:'');
+    if(key === H.galKey) return; H.galKey = key;
+    $('#kGal', el).innerHTML = subs.length ? subs.map(s=>`<button class="thumb ${s.sid===H.skyView?'sel':''}" data-sid="${esc(s.sid)}" type="button"><img src="${s.sky.img}" alt="Night sky drawing by ${esc(label(s,'Artist'))}"><span>${esc(label(s,'Artist'))}</span></button>`).join('')
+      : `<div class="empty">Drawings appear here as students send them.</div>`;
+    const st = H.students.get(H.skyView);
+    $('#kView', el).innerHTML = st && st.sky ? `<img src="${st.sky.img}" alt="Selected drawing"><div class="row between wrap"><b>${esc(label(st,'Artist'))}</b><div class="row gap">${S.skySpot?'<button class="btn alt" id="kStop" type="button">Stop showing</button>':''}<button class="btn gold" id="kShow" type="button">Show to class</button></div></div>`
+      : (S.skySpot ? `<div class="spotbox"><span>A drawing is on everyone’s screen.</span><button class="btn alt" id="kStop" type="button">Stop showing</button></div>` : '');
+  }
+};
+
+TV.wrap = {
+  mount(el){
+    el.innerHTML = `<section class="panel wrapup"><div id="wBody"></div></section>`;
+    $('#wBody', el).addEventListener('click', e => {
+      if(e.target.closest('#wOpen')){ const all = {}; LOCK.forEach(([st])=>all[st]=true); setS({letters:all, unlocked:true}); }
+      if(e.target.closest('#wReset')) setS({unlocked:false});
+    });
+  },
+  update(el){
+    const n = LOCK.filter(([st])=>S.letters[st]).length;
+    $('#wBody', el).innerHTML = S.unlocked
+      ? endingHTML('') + `<div class="row end mt"><button class="btn alt" id="wReset" type="button">Close the lock again</button></div>`
+      : `<h2>The lock</h2>${lockHTML(S.letters, null, true)}
+         <p class="sub" style="margin:10px auto">${n} of 5 letters found.${n<5 ? ' Opening the lock now fills in the missing letters.' : ' Everything is ready!'}</p>
+         <button class="btn big gold" id="wOpen" type="button">🔓 Open the lock</button>`;
+  }
+};
+
+/* ================================================================
+   STUDENT
+   ================================================================ */
+const P = {peer:null, conn:null, sid:null, name:'', room:'', joined:false, retryT:null, mounted:null,
+           dot:null, dots:[], sort:null, sortTick:null, diceChoice:null, diceFor:0, spyText:'', spySentFor:0,
+           skyTool:null, skyUndo:[], skyCtx:null, skyImage:null, spotImg:null, spotClosed:null};
+let SS = null;
+
+function showJoin(room, err){
+  app.innerHTML = `<div class="center"><div class="panel joincard">
+    <div aria-hidden="true" style="font-size:2rem">🍂🌰🍁</div>
+    <h1>Acorn Trail</h1>
+    <p>Type your first name and the room code your teacher shows you.</p>
+    <label>First name<input id="jName" maxlength="16" autocomplete="off" value="${esc(ss.get('at_name')||'')}"></label>
+    <label>Room code<input id="jRoom" maxlength="5" autocomplete="off" autocapitalize="characters" value="${esc(room||'')}"></label>
+    <p class="err" id="jErr" role="alert">${esc(err||'')}</p>
+    <button class="btn big" id="jGo" type="button">Join the trail</button>
+  </div></div>`;
+  const go = () => {
+    const name = cleanName($('#jName').value), code = $('#jRoom').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(!$('#jName').value.trim()){ $('#jErr').textContent = 'Type your first name.'; return; }
+    if(code.length !== 5){ $('#jErr').textContent = 'The room code has 5 letters and numbers.'; return; }
+    if(typeof Peer === 'undefined'){ $('#jErr').textContent = 'The page didn’t finish loading. Reload and try again.'; return; }
+    P.name = name; P.room = code; ss.set('at_name', name);
+    P.sid = ss.get('at_sid') || ('s' + Math.random().toString(36).slice(2,10)); ss.set('at_sid', P.sid);
+    app.innerHTML = `<div class="center"><p class="status">🌰 Walking to the trailhead…</p></div>`;
+    sConnect();
+  };
+  $('#jGo').onclick = go;
+  $('#jRoom').onkeydown = $('#jName').onkeydown = e => { if(e.key==='Enter') go(); };
+  (room ? $('#jName') : $('#jRoom')).focus();
+}
+function sConnect(){
+  if(P.peer && !P.peer.destroyed){ if(P.peer.open) openConn(); return; }
+  const peer = new Peer(); P.peer = peer;
+  peer.on('open', openConn);
+  peer.on('error', err => {
+    if(err.type === 'peer-unavailable'){
+      if(!P.joined){ try{ peer.destroy(); }catch(e){} P.peer = null; showJoin(P.room, 'That room isn’t open. Check the code, or wait for your teacher to open it.'); }
+      else scheduleRetry();
+    } else scheduleRetry();
+  });
+  peer.on('disconnected', () => { try{ if(!peer.destroyed) peer.reconnect(); }catch(e){} });
+}
+function openConn(){
+  if(!P.peer || !P.peer.open) return;
+  const c = P.peer.connect(ROOM_PREFIX + P.room, {reliable:true});
+  const old = P.conn; P.conn = c; if(old){ try{ old.close(); }catch(e){} }
+  c.on('open', () => { c.send({t:'hello', sid:P.sid, name:P.name}); setConn(true); });
+  c.on('data', sMsg);
+  c.on('close', () => { if(P.conn === c){ setConn(false); scheduleRetry(); } });
+  c.on('error', () => {});
+}
+function scheduleRetry(){
+  if(P.retryT) return;
+  P.retryT = setTimeout(() => {
+    P.retryT = null;
+    if(P.conn && P.conn.open) return;
+    if(!P.peer || P.peer.destroyed){ P.peer = null; sConnect(); }
+    else if(P.peer.disconnected){ try{ P.peer.reconnect(); }catch(e){} setTimeout(openConn, 1200); }
+    else openConn();
+    scheduleRetryCheck();
+  }, 2500);
+}
+function scheduleRetryCheck(){ setTimeout(()=>{ if(P.joined && !(P.conn && P.conn.open)) scheduleRetry(); }, 5000); }
+function setConn(on){ const d = $('#sConn'); if(d){ d.classList.toggle('on', on); d.title = on ? 'Connected' : 'Reconnecting…'; } }
+function sendHost(m){ try{ if(P.conn && P.conn.open){ P.conn.send(m); return true; } }catch(e){} return false; }
+
+function sMsg(m){
+  if(!m || typeof m !== 'object') return;
+  if(m.t === 'state'){
+    const prev = SS; SS = m.S;
+    if(!P.joined){ P.joined = true; sShell(); }
+    if(prev){ for(const [st,l] of LOCK) if(SS.letters && SS.letters[st] && !(prev.letters||{})[st]){ P.fresh = st; toast('🔓 Your class earned the letter ' + l + '!'); } if(SS.unlocked && !prev.unlocked) toast('🔓 The lock is open!'); }
+    if(!prev || prev.fibI !== SS.fibI){ P.dot = null; if(prev) stopSpeech(); }
+    if(!P.sort || P.sort.round !== SS.sortRound) P.sort = {round:SS.sortRound, go:0, order:shuffle(SORT_WORDS.map(w=>w.w)), place:{}, sel:null, done:false, end:0};
+    if(SS.sortGo && P.sort.go !== SS.sortGo){ P.sort.go = SS.sortGo; P.sort.place = {}; P.sort.sel = null; P.sort.done = false; P.sort.end = Date.now() + SORT_SECONDS*1000; startSortTick(); }
+    if(SS.sortRev && P.sort.go && !P.sort.done) submitSort();
+    if(P.diceFor !== SS.diceId){ P.diceFor = SS.diceId; P.diceChoice = null; }
+    if(P.spyFor !== SS.spyId){ P.spyFor = SS.spyId; P.spyText = ''; P.spySentFor = 0; }
+    sRender();
+  } else if(m.t === 'dots'){
+    P.dots = Array.isArray(m.d) ? m.d : [];
+    if(P.mounted === 'fib') SV.fib.update($('#sMain'));
+  } else if(m.t === 'skyimg'){
+    P.spotImg = {img:m.img, id:m.id}; sOverlay();
+  }
+}
+function sShell(){
+  app.innerHTML = `<div class="s-shell">
+    <header class="s-top"><div class="brand"><span aria-hidden="true" style="font-size:1.4rem">🌰</span><span class="disp">Acorn Trail</span></div>
+      <div class="me"><span class="conn on" id="sConn" title="Connected"></span><span>${esc(P.name)}</span></div></header>
+    <div class="trail" id="sTrail" aria-label="Trail stops"></div>
+    <div class="case" id="sCase"></div>
+    <main id="sMain"></main>
+  </div>
+  <div class="overlay" id="sOverlay" hidden></div>`;
+  P.mounted = null; P.trailFor = null;
+}
+function sRender(){
+  if(!$('#sMain')) sShell();
+  if(P.trailFor !== SS.stage){ P.trailFor = SS.stage; $('#sTrail').innerHTML = trailHTML(SS.stage, false); }
+  const ck = SS.stage + JSON.stringify(SS.letters||{}) + (P.fresh||'');
+  if(P.caseKey !== ck){ P.caseKey = ck; $('#sCase').innerHTML = lockHTML(SS.letters, P.fresh) + `<p>${esc(STORY[SS.stage])}</p>`; P.fresh = null; }
+  const main = $('#sMain');
+  if(P.mounted !== SS.stage){
+    if(P.mounted === 'sky' && P.skyCtx){ try{ P.skyImage = P.skyCtx.getImageData(0,0,SKY_W,SKY_H); }catch(e){} }
+    stopSpeech(); P.mounted = SS.stage; main.innerHTML = ''; SV[SS.stage].mount(main); window.scrollTo(0,0);
+  }
+  SV[SS.stage].update(main);
+  sOverlay();
+}
+function sOverlay(){
+  const o = $('#sOverlay'); if(!o || !SS) return;
+  const show = SS.stage === 'sky' && SS.skySpot && P.spotImg && P.spotImg.id === SS.skySpot.id && P.spotClosed !== SS.skySpot.id;
+  if(!show){ o.hidden = true; o.innerHTML = ''; return; }
+  if(!o.hidden && o.dataset.id === String(SS.skySpot.id)) return;
+  o.dataset.id = SS.skySpot.id; o.hidden = false;
+  o.innerHTML = `<div class="panel"><div class="row between"><h2>🌙 Featured star map</h2><button class="btn alt" id="oClose" type="button">Close</button></div>
+    <img src="${P.spotImg.img}" alt="Featured night sky drawing"><p class="sub">By ${esc(SS.skySpot.label)}</p></div>`;
+  $('#oClose').onclick = () => { P.spotClosed = SS.skySpot.id; sOverlay(); };
+}
+
+const SV = {};
+SV.lobby = {
+  mount(el){ el.innerHTML = `<section class="panel waitcard"><div class="big" aria-hidden="true">🔎🌰</div><h2>You’re on the case, Detective ${esc(P.name)}!</h2><p class="sub" style="margin:auto">Read the case file above. Your teacher will open the case soon.</p></section>`; },
+  update(){}
+};
+
+SV.fib = {
+  mount(el){
+    P.fibKey = '';
+    el.innerHTML = `<section class="panel"><div id="fTop"></div><div id="fMapWrap" hidden>${mapHTML()}</div><div class="reveal" id="fRevBox" hidden></div></section>`;
+    $('#fTop', el).addEventListener('click', e => { const b = e.target.closest('[data-speak]'); if(b) toggleSpeech(FIB[SS.fibI].para, b); });
+    $('#map', el).addEventListener('pointerdown', e => {
+      if(!SS || SS.fibRev || SS.fibPhase!=='ask') return;
+      const r = e.currentTarget.getBoundingClientRect();
+      P.dot = {x:clamp01((e.clientX-r.left)/r.width), y:clamp01((e.clientY-r.top)/r.height)};
+      sendHost({t:'dot', x:P.dot.x, y:P.dot.y, q:SS.fibI});
+      SV.fib.update(el);
+    });
+  },
+  update(el){
+    const q = FIB[SS.fibI], ask = SS.fibPhase==='ask';
+    const mine = P.dot ? (P.dot.x < .5 ? 'fact' : 'fib') : '';
+    const key = [SS.fibI, SS.fibPhase, SS.fibText, SS.fibRev, SS.fibRev ? mine : ''].join('|');
+    if(key !== P.fibKey){
+      P.fibKey = key;
+      const lbl = ask ? '🔊 Hear it again' : '🔊 Hear it on my device';
+      $('#fTop', el).innerHTML = `<div class="row between wrap"><h2>${q.icon} ${esc(q.title)}</h2><button class="btn lake" data-speak data-label="${lbl}" type="button">${lbl}</button></div>
+        ${!ask ? `<div class="waitcard"><div class="big" aria-hidden="true">🎧</div><h2>Listen closely, detective!</h2><p class="sub" style="margin:auto">Your teacher is reading from the Forest Field Guide. Listen for facts. Then a witness will tell you something. Is it true?</p></div>` : ''}
+        ${(SS.fibText || SS.fibRev) ? `<p class="para">${paraHTML(q, SS.fibRev)}</p>` : ''}
+        ${ask ? `<p class="sub mt">The witness says:</p><p class="clue" style="margin-top:2px">${esc(q.c)}</p>${SS.fibRev ? '' : '<p class="sub">Is the witness telling the truth? Tap Fact or Fib to drop your acorn. You can move it until your teacher reveals the answer.</p>'}` : ''}`;
+      $('#fMapWrap', el).hidden = !ask;
+      const box = $('#fRevBox', el); box.hidden = !SS.fibRev;
+      if(SS.fibRev){
+        const you = !mine ? '' : (mine===q.a ? '<p>🌰 You got it!</p>' : '<p>🌰 Not this time. Now you know!</p>');
+        box.innerHTML = `<b>${q.a==='fact'?'🔥 Fact!':'🐿️ Fib!'}</b> ${esc(q.why)} The highlighted sentence is the proof.${you}`;
+      }
+    }
+    if(ask) paintMap(el, P.dots, P.dot, SS.fibRev, q.a);
+  }
+};
+
+function startSortTick(){
+  clearInterval(P.sortTick);
+  P.sortTick = setInterval(()=>{
+    if(!P.sort || !P.sort.go){ clearInterval(P.sortTick); return; }
+    const left = Math.max(0, Math.ceil((P.sort.end - Date.now())/1000));
+    const t = $('#sTimer'); if(t) t.textContent = P.sort.done ? '' : left;
+    if(left <= 0 && !P.sort.done){ submitSort(); if(P.mounted==='sort') SV.sort.update($('#sMain')); }
+    if(P.sort.done) clearInterval(P.sortTick);
+  }, 250);
+}
+function submitSort(){
+  const s = P.sort; if(!s || s.done) return;
+  s.done = true; s.sel = null;
+  let correct = 0; const misses = [];
+  SORT_WORDS.forEach(w => { if(s.place[w.w] === w.b) correct++; else misses.push(w.w); });
+  sendHost({t:'sort', round:s.round, correct, total:SORT_WORDS.length, misses});
+}
+SV.sort = {
+  mount(el){
+    el.innerHTML = `<section class="panel"><div class="row between"><h2>The Root Door</h2><div class="timer" id="sTimer"></div></div><div id="srt"></div></section>`;
+    $('#srt', el).addEventListener('click', e => {
+      const s = P.sort; if(!s || !s.go || s.done) return;
+      const chip = e.target.closest('[data-w]'), bucket = e.target.closest('[data-b]');
+      if(bucket && s.sel && s.sel !== (chip && chip.dataset.w)){ s.place[s.sel] = bucket.dataset.b; s.sel = null; }
+      else if(chip){ const w = chip.dataset.w;
+        if(s.place[w] && !chip.closest('.tray')){ delete s.place[w]; s.sel = null; }   // tap a sorted word to send it back
+        else s.sel = (s.sel === w ? null : w);
+      }
+      else if(e.target.closest('#sDone')) submitSort();
+      SV.sort.update(el);
+    });
+    $('#srt', el).addEventListener('keydown', e => { if((e.key==='Enter'||e.key===' ') && e.target.matches('[data-b]')){ e.preventDefault(); e.target.click(); } });
+  },
+  update(el){
+    const s = P.sort, box = $('#srt', el);
+    $('#sTimer', el).textContent = s.go && !s.done ? Math.max(0, Math.ceil((s.end-Date.now())/1000)) : '';
+    if(!s.go){ box.innerHTML = `<div class="waitcard"><div class="big" aria-hidden="true">🎯🏁</div><h2>Get ready to open the door!</h2>
+      <p class="sub" style="margin:auto"><b>oi</b> lives inside a syllable, like s<b>oi</b>l. <b>oy</b> sits at the end of a syllable, like j<b>oy</b>. The timer starts when your teacher says go.</p></div>`; return; }
+    const rev = SS.sortRev, ans = Object.fromEntries(SORT_WORDS.map(w=>[w.w,w.b]));
+    const chip = w => { const mark = rev ? (s.place[w]===ans[w] ? 'ok' : 'no') : ''; return `<button class="chip ${s.sel===w?'sel':''} ${mark}" data-w="${w}" type="button" ${s.done?'tabindex="-1"':''}>${w}${rev?(mark==='ok'?' ✓':' ✗'):''}</button>`; };
+    const tray = s.order.filter(w=>!s.place[w]);
+    const bucket = (b, head, sub) => `<div class="bucket ${s.sel&&!s.done?'ready':''}" data-b="${b}" role="button" tabindex="0" aria-label="${b} bucket">
+      <div class="bh">${head}</div><div class="bs">${sub}</div><div class="chips">${s.order.filter(w=>s.place[w]===b).map(chip).join('')}</div></div>`;
+    let msg = '';
+    if(s.done && !rev) msg = `<p class="reveal">🌰 Sent! Wait for your teacher to reveal the answers.</p>`;
+    if(rev){ const c = SORT_WORDS.filter(w=>s.place[w.w]===w.b).length; msg = `<p class="reveal"><b>${c} of ${SORT_WORDS.length}</b> sorted correctly. Words with ✗ belong in the other bucket.</p>`; }
+    box.innerHTML = `<p class="sub">${s.done?'':'Tap a word, then tap its bucket. Tap a sorted word to move it back.'}</p>
+      ${tray.length ? `<div class="tray">${tray.map(chip).join('')}</div>` : ''}
+      <div class="buckets">${bucket('oi','🎯 oi','inside a syllable')}${bucket('oy','🏁 oy','end of a syllable')}</div>
+      ${msg}
+      ${!s.done ? `<div class="row end mt"><button class="btn" id="sDone" type="button">I’m done</button></div>` : ''}`;
+  }
+};
+
+SV.dice = {
+  mount(el){
+    el.innerHTML = `<section class="panel"><h2>📓 Owl’s Journal</h2><div id="dBox"></div></section>`;
+    $('#dBox', el).addEventListener('click', e => {
+      const b = e.target.closest('[data-o]'); if(!b || SS.diceRev) return;
+      P.diceChoice = b.dataset.o; sendHost({t:'dice', id:SS.diceId, choice:P.diceChoice}); SV.dice.update(el);
+    });
+  },
+  update(el){
+    const v = VERBS[SS.diceN], box = $('#dBox', el);
+    if(!v){ box.innerHTML = `<div class="waitcard"><div class="big" aria-hidden="true">🎲</div><h2>Waiting for the roll…</h2><p class="sub" style="margin:auto">Get ready to send a verb back in time!</p></div>`; return; }
+    const opts = shuffle(v.opts, SS.diceId*7919 + SS.diceN);
+    const cls = o => SS.diceRev ? (o===v.past ? 'right' : (o===P.diceChoice ? 'wrong' : '')) : (o===P.diceChoice ? 'pick' : '');
+    box.innerHTML = `<div class="dicewrap">${dieHTML(SS.diceN)}<div>
+        <p class="sent">${esc(v.t)}</p>
+        <p class="sent">${esc(v.y[0])} <span class="blank">${SS.diceRev ? v.past : (P.diceChoice||'?')}</span> ${esc(v.y[1])}</p></div></div>
+      <p class="sub mt">Tap the past-tense word.</p>
+      <div class="opts">${opts.map(o=>`<button class="opt ${cls(o)}" data-o="${o}" type="button" ${SS.diceRev?'disabled':''}>${o}</button>`).join('')}</div>
+      ${SS.diceRev ? `<p class="reveal">${P.diceChoice===v.past ? '🌰 Yes! ' : ''}<b>${v.p} → ${v.past}</b>. This verb doesn’t use -ed in the past.</p>` : ''}`;
+  }
+};
+
+SV.spy = {
+  mount(el){
+    el.innerHTML = `<section class="panel">
+      <h2>Royal Soil Spy Code</h2>
+      <div id="ySpot"></div>
+      <div class="codes" id="yCodes"></div>
+      <p class="sub" id="yHelp"></p>
+      <textarea id="yText" maxlength="300" placeholder="Report for Ranger Raccoon: …" aria-label="Your spy report sentence"></textarea>
+      <div class="row between wrap mt"><div class="checks" id="yChk"></div><button class="btn" id="ySend" type="button">Send my spy report</button></div>
+      <p class="sub" id="yStatus"></p>
+    </section>`;
+    const ta = $('#yText', el); ta.value = P.spyText;
+    ta.oninput = () => { P.spyText = ta.value; SV.spy.update(el); };
+    $('#ySend', el).onclick = () => {
+      if(!P.spyText.trim()) { toast('Write your spy report first.'); return; }
+      if(sendHost({t:'spy', id:SS.spyId, text:P.spyText.trim()})){ P.spySentFor = SS.spyId; P.spySentText = P.spyText.trim(); toast('Report sent to headquarters!'); }
+      else toast('Not connected. Try again in a moment.');
+      SV.spy.update(el);
+    };
+  },
+  update(el){
+    const words = [SS.spyOi, SS.spyOy];
+    $('#ySpot', el).innerHTML = SS.spot ? `<div class="spotbox"><span>📣 Featured report from ${esc(SS.spot.label)}: “${esc(SS.spot.text)}”</span></div>` : '';
+    $('#yCodes', el).innerHTML = SS.spySpin && !words.some(Boolean) ? `<span class="code">🔐 Decoding…</span>`
+      : words.map((w,i)=> w ? `<span class="code">${esc(w)}</span>` : `<span class="code" style="opacity:.5">${SS.spySpin===(i?'oy':'oi')?'🔐 Decoding…':'? ? ?'}</span>`).join('');
+    $('#yHelp', el).textContent = words.every(Boolean) ? 'Write one report sentence for Ranger Raccoon that uses both code words.' : 'Your secret code words are on the way. You can start thinking now!';
+    $('#yChk', el).innerHTML = words.filter(Boolean).map(w=>{ const ok = wordUsed(P.spyText, w); return `<span class="chk ${ok?'ok':''}">${ok?'✓':'✗'} ${esc(w)}</span>`; }).join('');
+    const sent = P.spySentFor === SS.spyId;
+    $('#yStatus', el).textContent = sent ? (P.spySentText === P.spyText.trim() ? '🌰 Sent! You can fix it and send again.' : 'You changed your report. Send it again to update it.') : '';
+  }
+};
+
+SV.sky = {
+  mount(el){
+    el.innerHTML = `<section class="panel sky">
+      <div class="row between wrap"><h2>🌙 Star Map</h2><button class="btn" id="kSend" type="button">Send to teacher</button></div>
+      <p class="sub">Color the picture, draw 3 arrows, and add 3 labels. Then find the W of stars and use the <b>🌰 Dig here!</b> label to mark the stash beside the tallest tree. Tap <b>Send to teacher</b> when you’re done.</p>
+      <div class="tools">
+        <div class="toolset" role="toolbar" aria-label="Drawing tools">${TOOLS.map(t=>`<button class="tool" data-tool="${t[0]}" aria-pressed="false" type="button">${t[1]}<span>${t[2]}</span></button>`).join('')}</div>
+        <div class="swatches" role="toolbar" aria-label="Colors">${COLORS.map(c=>`<button class="sw" data-c="${c[0]}" style="background:${c[0]}" aria-label="${c[1]}" title="${c[1]}" type="button"></button>`).join('')}</div>
+        <div class="toolset"><button class="tool" id="kSize" type="button"></button><button class="tool" id="kUndo" type="button">↩️<span>Undo</span></button><button class="tool" id="kClear" type="button">🧹<span>Start over</span></button></div>
+      </div>
+      <div class="stamps" id="kStamps" hidden>${STAMPS.map(s=>`<button class="stamp" data-s="${esc(s)}" type="button">${esc(s)}</button>`).join('')}</div>
+      <div class="canvaswrap"><canvas id="kCan" width="${SKY_W}" height="${SKY_H}" aria-label="Night sky drawing canvas"></canvas></div>
+    </section>`;
+    initSky(el);
+  },
+  update(){}
+};
+
+SV.wrap = {
+  mount(el){ el.innerHTML = `<section class="panel wrapup"><div id="wBody"></div></section>`; },
+  update(el){
+    $('#wBody', el).innerHTML = SS.unlocked ? endingHTML(P.name)
+      : `<h2>The lock</h2>${lockHTML(SS.letters, null, true)}<p class="sub" style="margin:12px auto">Watch your teacher’s screen. The lock is about to open…</p>`;
+  }
+};
+
+/* ============ NIGHT SKY DRAWING ============ */
+function drawSkyOutline(c){
+  c.save();
+  c.fillStyle = '#fff'; c.fillRect(0,0,SKY_W,SKY_H);
+  c.strokeStyle = '#8f8a84'; c.lineWidth = 3; c.lineJoin = 'round'; c.lineCap = 'round';
+  // ground
+  c.beginPath(); c.moveTo(0,455); c.bezierCurveTo(200,405,420,475,620,435); c.bezierCurveTo(740,410,830,432,SKY_W,425);
+  c.lineTo(SKY_W,SKY_H); c.lineTo(0,SKY_H); c.closePath(); c.stroke();
+  // crescent moon
+  const A={x:170,y:130,r:62}, B={x:196,y:112,r:54};
+  const pts = circleHits(A,B);
+  if(pts){
+    const [p1,p2] = pts;
+    const a1 = Math.atan2(p1.y-A.y,p1.x-A.x), a2 = Math.atan2(p2.y-A.y,p2.x-A.x);
+    const b1 = Math.atan2(p1.y-B.y,p1.x-B.x), b2 = Math.atan2(p2.y-B.y,p2.x-B.x);
+    // outer arc: the long way through the left side (angle π)
+    c.beginPath();
+    const outerCW = arcContains(a1, a2, false, Math.PI);
+    c.arc(A.x,A.y,A.r,a1,a2,!outerCW);
+    const toC = Math.atan2(A.y-B.y, A.x-B.x);   // inner edge faces the outer circle's center
+    const innerCW = arcContains(b2, b1, false, toC);
+    c.arc(B.x,B.y,B.r,b2,b1,!innerCW);
+    c.closePath(); c.stroke();
+  }
+  // Cassiopeia (a fall constellation) with dashed guide lines
+  const cas = [[430,92],[482,142],[532,104],[586,150],[634,96]];
+  c.save(); c.setLineDash([6,8]); c.lineWidth = 2; c.strokeStyle = '#b9b3ab';
+  c.beginPath(); cas.forEach(([x,y],i)=> i ? c.lineTo(x,y) : c.moveTo(x,y)); c.stroke(); c.restore();
+  cas.forEach(([x,y]) => starPath(c,x,y,14));
+  [[300,58],[790,70],[355,215],[860,190],[64,270],[700,40],[250,300]].forEach(([x,y]) => starPath(c,x,y,9));
+  // tree trunk + crown
+  c.beginPath(); c.moveTo(704,438); c.lineTo(713,318); c.lineTo(747,318); c.lineTo(758,436); c.closePath(); c.stroke();
+  c.beginPath();
+  const cx0=730, cy0=238, rx=118, ry=92, bumps=10;
+  for(let i=0;i<=bumps;i++){
+    const t = i/bumps*Math.PI*2, x = cx0+Math.cos(t)*rx, y = cy0+Math.sin(t)*ry;
+    if(i===0) c.moveTo(x,y);
+    else { const tm=(i-.5)/bumps*Math.PI*2; c.quadraticCurveTo(cx0+Math.cos(tm)*rx*1.22, cy0+Math.sin(tm)*ry*1.22, x, y); }
+  }
+  c.closePath(); c.stroke();
+  // falling leaves
+  [[470,320,-.5],[585,250,.6],[120,380,.2]].forEach(([x,y,r]) => leafPath(c,x,y,r));
+  c.restore();
+}
+function circleHits(A,B){
+  const dx=B.x-A.x, dy=B.y-A.y, d=Math.hypot(dx,dy);
+  if(d > A.r+B.r || d < Math.abs(A.r-B.r)) return null;
+  const a=(A.r*A.r - B.r*B.r + d*d)/(2*d), h=Math.sqrt(A.r*A.r - a*a);
+  const mx=A.x+a*dx/d, my=A.y+a*dy/d;
+  return [{x:mx+h*dy/d, y:my-h*dx/d},{x:mx-h*dy/d, y:my+h*dx/d}];
+}
+function norm(a){ a%=Math.PI*2; return a<0 ? a+Math.PI*2 : a; }
+// does going clockwise (increasing angle) from s to e pass through angle t?
+function arcContains(s, e, _unused, t){ const span = norm(e-s), off = norm(t-s); return off <= span; }
+function starPath(c,x,y,r){
+  c.beginPath();
+  for(let i=0;i<10;i++){ const ang = -Math.PI/2 + i*Math.PI/5, rr = i%2 ? r*.45 : r; const px=x+Math.cos(ang)*rr, py=y+Math.sin(ang)*rr; i ? c.lineTo(px,py) : c.moveTo(px,py); }
+  c.closePath(); c.stroke();
+}
+function leafPath(c,x,y,rot){
+  c.save(); c.translate(x,y); c.rotate(rot);
+  c.beginPath(); c.moveTo(-26,0); c.quadraticCurveTo(0,-22,26,0); c.quadraticCurveTo(0,22,-26,0); c.closePath(); c.stroke();
+  c.beginPath(); c.moveTo(-34,0); c.lineTo(22,0); c.stroke();
+  c.restore();
+}
+function hexRgb(h){ const n=parseInt(h.slice(1),16); return [n>>16&255, n>>8&255, n&255]; }
+function floodFill(ctx, x, y, fill){
+  const W=ctx.canvas.width, Hh=ctx.canvas.height;
+  x=Math.floor(x); y=Math.floor(y); if(x<0||y<0||x>=W||y>=Hh) return;
+  const img=ctx.getImageData(0,0,W,Hh), d=img.data, i0=(y*W+x)*4;
+  const tr=d[i0], tg=d[i0+1], tb=d[i0+2];
+  if(Math.abs(tr-fill[0])+Math.abs(tg-fill[1])+Math.abs(tb-fill[2]) < 12) return;
+  const tol=120, seen=new Uint8Array(W*Hh);
+  const match = p => { const k=p*4; return !seen[p] && Math.abs(d[k]-tr)+Math.abs(d[k+1]-tg)+Math.abs(d[k+2]-tb) <= tol; };
+  const stack=[x,y];
+  while(stack.length){
+    const py=stack.pop(); let px=stack.pop(), p=py*W+px;
+    while(px>0 && match(p-1)){ px--; p--; }
+    let up=false, down=false;
+    while(px<W && match(p)){
+      seen[p]=1; const k=p*4; d[k]=fill[0]; d[k+1]=fill[1]; d[k+2]=fill[2]; d[k+3]=255;
+      if(py>0){ if(match(p-W)){ if(!up){ stack.push(px,py-1); up=true; } } else up=false; }
+      if(py<Hh-1){ if(match(p+W)){ if(!down){ stack.push(px,py+1); down=true; } } else down=false; }
+      px++; p++;
+    }
+  }
+  ctx.putImageData(img,0,0);
+}
+function drawArrow(c,a,b,color,w){
+  const ang=Math.atan2(b.y-a.y,b.x-a.x), hl=Math.max(18,w*3.2);
+  c.save(); c.strokeStyle=color; c.fillStyle=color; c.lineWidth=w; c.lineCap='round';
+  c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x-Math.cos(ang)*hl*.6, b.y-Math.sin(ang)*hl*.6); c.stroke();
+  c.beginPath(); c.moveTo(b.x,b.y);
+  c.lineTo(b.x-hl*Math.cos(ang-.45), b.y-hl*Math.sin(ang-.45));
+  c.lineTo(b.x-hl*Math.cos(ang+.45), b.y-hl*Math.sin(ang+.45)); c.closePath(); c.fill();
+  c.restore();
+}
+function drawStamp(c,text,x,y){
+  c.save(); c.font='bold 22px "Atkinson Hyperlegible", sans-serif';
+  const w=c.measureText(text).width+26, h=36, l=Math.min(Math.max(4,x-w/2),SKY_W-w-4), t=Math.min(Math.max(4,y-h/2),SKY_H-h-4);
+  c.beginPath(); if(c.roundRect) c.roundRect(l,t,w,h,18); else c.rect(l,t,w,h);
+  c.fillStyle='#fff'; c.fill(); c.lineWidth=3; c.strokeStyle='#C2412D'; c.stroke();
+  c.fillStyle='#3A2619'; c.textBaseline='middle'; c.fillText(text,l+13,t+h/2+1);
+  c.restore();
+}
+function initSky(el){
+  const cv=$('#kCan',el), cx=cv.getContext('2d',{willReadFrequently:true});
+  const K = P.skyTool || (P.skyTool = {tool:'pen', color:'#F5D547', size:1, stamp:STAMPS[0]});
+  const SIZES=[[4,'Thin'],[9,'Medium'],[18,'Thick']];
+  if(P.skyImage) cx.putImageData(P.skyImage,0,0); else drawSkyOutline(cx);
+  P.skyCtx = cx;
+  const undo = P.skyUndo;
+  const sync = () => {
+    el.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.tool===K.tool));
+    el.querySelectorAll('[data-c]').forEach(b=>b.classList.toggle('sel', b.dataset.c===K.color));
+    el.querySelectorAll('[data-s]').forEach(b=>b.classList.toggle('sel', b.dataset.s===K.stamp));
+    $('#kStamps',el).hidden = K.tool!=='label';
+    $('#kSize',el).innerHTML = `<span style="display:inline-block;width:${SIZES[K.size][0]+4}px;height:${SIZES[K.size][0]+4}px;border-radius:50%;background:${K.color};border:1px solid #999"></span><span>${SIZES[K.size][1]}</span>`;
+    cv.style.cursor = K.tool==='fill' ? 'cell' : 'crosshair';
+  };
+  sync();
+  el.querySelector('.tools').addEventListener('click', e => {
+    const t=e.target.closest('[data-tool]'), c=e.target.closest('[data-c]');
+    if(t){ K.tool=t.dataset.tool; }
+    if(c){ K.color=c.dataset.c; if(K.tool==='eraser'||K.tool==='label') K.tool='pen'; }
+    if(e.target.closest('#kSize')) K.size=(K.size+1)%SIZES.length;
+    if(e.target.closest('#kUndo')){ const s=undo.pop(); if(s) cx.putImageData(s,0,0); else toast('Nothing to undo.'); }
+    if(e.target.closest('#kClear')){ snap(); drawSkyOutline(cx); toast('Fresh picture. Tap Undo to bring yours back.'); }
+    sync();
+  });
+  $('#kStamps',el).onclick = e => { const s=e.target.closest('[data-s]'); if(s){ K.stamp=s.dataset.s; sync(); toast('Tap the picture to place the label.'); } };
+  const pos = e => { const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)*SKY_W/r.width, y:(e.clientY-r.top)*SKY_H/r.height}; };
+  function snap(){ undo.push(cx.getImageData(0,0,SKY_W,SKY_H)); if(undo.length>12) undo.shift(); }
+  let drawing=false, last=null, start=null, base=null;
+  const stroke = (a,b) => {
+    cx.save(); cx.strokeStyle = K.tool==='eraser' ? '#ffffff' : K.color;
+    cx.lineWidth = SIZES[K.size][0] * (K.tool==='eraser' ? 2.5 : 1); cx.lineCap='round'; cx.lineJoin='round';
+    cx.beginPath(); cx.moveTo(a.x,a.y); cx.lineTo(b.x+.01,b.y); cx.stroke(); cx.restore();
+  };
+  cv.addEventListener('pointerdown', e => {
+    e.preventDefault(); const p=pos(e);
+    if(K.tool==='fill'){ snap(); floodFill(cx,p.x,p.y,hexRgb(K.color)); return; }
+    if(K.tool==='label'){ snap(); drawStamp(cx,K.stamp,p.x,p.y); return; }
+    try{ cv.setPointerCapture(e.pointerId); }catch(err){}
+    snap(); drawing=true; last=p; start=p;
+    if(K.tool==='arrow') base=cx.getImageData(0,0,SKY_W,SKY_H); else stroke(p,p);
+  });
+  cv.addEventListener('pointermove', e => {
+    if(!drawing) return; const p=pos(e);
+    if(K.tool==='arrow'){ cx.putImageData(base,0,0); drawArrow(cx,start,p,K.color,Math.max(4,SIZES[K.size][0]*.8)); }
+    else { stroke(last,p); last=p; }
+  });
+  const end = e => {
+    if(!drawing) return; drawing=false;
+    if(K.tool==='arrow' && e && e.type==='pointerup'){ const p=pos(e); if(Math.hypot(p.x-start.x,p.y-start.y) < 12){ cx.putImageData(base,0,0); undo.pop(); toast('Drag to draw an arrow.'); } }
+    base=null;
+  };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  $('#kSend',el).onclick = () => {
+    const o=document.createElement('canvas'); o.width=600; o.height=Math.round(600*SKY_H/SKY_W);
+    o.getContext('2d').drawImage(cv,0,0,o.width,o.height);
+    if(sendHost({t:'sky', img:o.toDataURL('image/jpeg',0.72)})) toast('Sent! Your teacher can see your night sky.');
+    else toast('Not connected. Try again in a moment.');
+  };
+}
+
+/* ============ BOOT ============ */
+(function boot(){
+  const p = new URLSearchParams(location.search);
+  if(p.get('room')) showJoin(p.get('room').toUpperCase().slice(0,5));
+  else if(p.has('teacher')) startHost();
+  else showLanding();
+})();
+</script>
+</body>
+</html>
