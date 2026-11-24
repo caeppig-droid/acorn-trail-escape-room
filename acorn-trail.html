@@ -122,6 +122,10 @@ button.stop:hover .pip{border-color:#fff}
 .tip{background:var(--soft);border-radius:14px;padding:12px 16px;font-size:1.15rem}
 .lsvg{width:min(420px,100%);display:block;margin:10px 0;border:2px solid var(--soft);border-radius:14px}
 .lsteps{font-size:1.15rem;line-height:1.7;padding-left:1.4em}
+.wheelstage{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0}
+.wheelstage canvas{width:min(300px,80vw)}
+.tumble{display:inline-block;margin:10px 0;animation:tumble .45s ease-in-out infinite}
+@keyframes tumble{0%{transform:rotate(-14deg) translateY(0)}50%{transform:rotate(14deg) translateY(-12px)}100%{transform:rotate(-14deg) translateY(0)}}
 .codegrid{display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start;margin-top:14px}
 .codecard{text-align:center;background:#fff;border-radius:18px;padding:16px;border:2px solid var(--soft);margin-bottom:12px}
 .codecard .pic{font-size:5rem;line-height:1.1}
@@ -499,7 +503,7 @@ const H = {peer:null, code:null, online:false, students:new Map(), joinCount:0, 
            showNames:false, raf:0, dotT:null, sortStart:null, sortTick:null, codeRot:0, codeSpinning:false, codeUsed:[],
            rolling:false, hidePara:false, skyView:null, skySpotImg:null, galKey:''};
 let S = {stage:'lobby', fibI:0, fibPhase:'listen', fibText:false, fibRev:false, sortRound:1, sortGo:0, sortRev:false,
-         letters:{}, unlocked:false, diceId:0, diceN:0, diceRev:false, diceDone:{}, diceCheck:null, spyId:0, spyIdx:-1, spySpin:false, spyRev:false, lesson:null, skySpot:null};
+         letters:{}, unlocked:false, diceId:0, diceN:0, diceRev:false, diceDone:{}, diceCheck:null, spyId:0, spyIdx:-1, spySpin:false, spinTok:0, spinIdx:-1, spinJit:0, spinDur:3200, diceRolling:0, spyRev:false, lesson:null, skySpot:null};
 
 function startHost(){
   if(typeof Peer === 'undefined'){ app.innerHTML = `<div class="center"><p class="status">PeerJS didn’t load. Check the internet connection and reload.</p></div>`; return; }
@@ -756,9 +760,9 @@ TV.dice = {
       </div></section>`;
     $('#dRoll', el).onclick = () => {
       const pool = [1,2,3,4,5,6].filter(n=>!S.diceDone[n]);
-      if(H.rolling || !pool.length) return; H.rolling = true; hostRender();
+      if(H.rolling || !pool.length) return; H.rolling = true; setS({diceRolling:Date.now()});
       const tick = setInterval(()=>{ $('#dDie').innerHTML = dieHTML(1+Math.floor(Math.random()*6), true); }, 90);
-      setTimeout(()=>{ clearInterval(tick); H.rolling=false; setS({diceId:S.diceId+1, diceN:pool[Math.floor(Math.random()*pool.length)], diceRev:false, diceCheck:null}); }, 1000);
+      setTimeout(()=>{ clearInterval(tick); H.rolling=false; setS({diceRolling:0, diceId:S.diceId+1, diceN:pool[Math.floor(Math.random()*pool.length)], diceRev:false, diceCheck:null}); }, 1000);
     };
     $('#dRev', el).onclick = () => {
       if(S.diceRev){ setS({diceRev:false}); return; }
@@ -862,9 +866,9 @@ function spinCode(){
   let pool = CODE_WORDS.map((_,i)=>i).filter(i=>!H.codeUsed.includes(i));
   if(!pool.length){ H.codeUsed = []; pool = CODE_WORDS.map((_,i)=>i).filter(i=>i!==S.spyIdx); }
   const idx = pool[Math.floor(Math.random()*pool.length)]; H.codeUsed.push(idx);
-  const start = H.codeRot, target = 1.5*Math.PI - (idx+.5)*seg + (Math.random()-.5)*seg*.6;
+  const jit = (Math.random()-.5)*seg*.6, start = H.codeRot, target = 1.5*Math.PI - (idx+.5)*seg + jit;
   const k = Math.ceil((start + 8*Math.PI - target)/(2*Math.PI)), end = target + 2*Math.PI*k, dur = 3200, t0 = performance.now();
-  H.codeSpinning = true; setS({spySpin:true, spyRev:false});
+  H.codeSpinning = true; setS({spySpin:true, spyRev:false, spinTok:Date.now(), spinIdx:idx, spinJit:jit, spinDur:dur});
   const frame = now => {
     const p = Math.min(1,(now-t0)/dur), e = 1-Math.pow(1-p,3);
     H.codeRot = start + (end-start)*e;
@@ -1153,6 +1157,7 @@ SV.sort = {
 
 SV.dice = {
   mount(el){
+    if(P.dieT){ clearInterval(P.dieT); P.dieT = null; }
     el.innerHTML = `<section class="panel"><div class="row between wrap"><h2>📓 Owl’s Journal</h2><div class="jprog" id="dProg"></div></div><div id="dBox"></div></section>`;
     $('#dBox', el).addEventListener('click', e => {
       const b = e.target.closest('[data-o]'); if(!b || SS.diceRev) return;
@@ -1163,6 +1168,14 @@ SV.dice = {
     const done = SS.diceDone || {};
     $('#dProg', el).innerHTML = VERBS.slice(1).map((v,i)=> done[i+1] ? `<span class="jc on">${v.past} ✓</span>` : `<span class="jc">${v.p}</span>`).join('');
     const v = VERBS[SS.diceN], box = $('#dBox', el), all = diceAllDone(done);
+    if(SS.diceRolling){
+      if(!P.dieT){
+        box.innerHTML = `<div class="waitcard"><div class="tumble" id="sDie">${dieHTML(1+Math.floor(Math.random()*6), true)}</div><h2>Rolling…</h2></div>`;
+        P.dieT = setInterval(()=>{ const d = $('#sDie'); if(d) d.innerHTML = dieHTML(1+Math.floor(Math.random()*6), true); }, 90);
+      }
+      return;
+    }
+    if(P.dieT){ clearInterval(P.dieT); P.dieT = null; }
     if(!v){ box.innerHTML = `<div class="waitcard"><div class="big" aria-hidden="true">🎲</div><h2>Waiting for the roll…</h2><p class="sub" style="margin:auto">Crack all 6 verbs to decode Owl’s journal!</p></div>`; return; }
     const opts = shuffle(v.opts, SS.diceId*7919 + SS.diceN);
     const cls = o => SS.diceRev ? (o===v.past ? 'right' : (o===P.diceChoice ? 'wrong' : '')) : (o===P.diceChoice ? 'pick' : '');
@@ -1182,6 +1195,21 @@ SV.dice = {
   }
 };
 
+
+function studentSpin(){
+  const n = CODE_WORDS.length, seg = Math.PI*2/n, idx = SS.spinIdx, dur = SS.spinDur || 3200;
+  const start = P.codeRot || 0, target = 1.5*Math.PI - (idx+.5)*seg + (SS.spinJit||0);
+  const k = Math.ceil((start + 8*Math.PI - target)/(2*Math.PI)), end = target + 2*Math.PI*k, t0 = performance.now();
+  P.wheelEnd = Date.now() + dur + 700;
+  const frame = now => {
+    const p = Math.min(1,(now-t0)/dur), e = 1-Math.pow(1-p,3);
+    P.codeRot = start + (end-start)*e;
+    const cv = $('#sWheel'); if(cv) drawCodeWheel(cv, P.codeRot);
+    if(p < 1) requestAnimationFrame(frame); else P.codeRot = end % (2*Math.PI);
+  };
+  requestAnimationFrame(frame);
+  setTimeout(() => { if(P.mounted === 'spy') SV.spy.update($('#sMain')); }, dur + 750);
+}
 
 const LessonS = {
   mount(el){
@@ -1208,9 +1236,14 @@ SV.spy = {
   },
   update(el){
     const box = $('#cBox', el), c = CODE_WORDS[SS.spyIdx];
-    const key = [SS.spyId, SS.spySpin, SS.spyRev].join('|');
+    if(SS.spySpin && P.spinTok !== SS.spinTok){ P.spinTok = SS.spinTok; studentSpin(); }
+    const spinning = SS.spySpin || Date.now() < (P.wheelEnd||0);
+    const key = [SS.spyId, spinning, SS.spyRev].join('|');
     if(key === P.codeKey) return; P.codeKey = key;
-    if(SS.spySpin){ box.innerHTML = `<div class="waitcard"><div class="big" aria-hidden="true">🔐</div><h2>Decoding…</h2><p class="sub" style="margin:auto">The code wheel is spinning!</p></div>`; return; }
+    if(spinning){
+      box.innerHTML = `<div class="wheelstage"><div class="wheelbox"><canvas id="sWheel" width="320" height="320" aria-label="Code wheel spinning"></canvas></div><p class="cw">Decoding…</p></div>`;
+      drawCodeWheel($('#sWheel', box), P.codeRot||0); return;
+    }
     if(!c){ box.innerHTML = `<div class="waitcard"><div class="big" aria-hidden="true">🦝</div><h2>Waiting for the code wheel…</h2><p class="sub" style="margin:auto">Get ready to type oi or oy.</p></div>`; return; }
     const rev = SS.spyRev, right = P.code.part === c.sp;
     box.innerHTML = `<div class="codecard">
