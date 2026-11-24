@@ -108,6 +108,32 @@ button.stop:hover .pip{border-color:#fff}
 .lock.big{margin:18px 0}
 .lock.big .tile{width:72px;height:88px;font-size:1.6rem;border-radius:14px}
 .lock.big .tile.on{font-size:3rem}
+.lesson h2{font-size:clamp(1.8rem,4vw,2.6rem);margin-bottom:6px}
+.lead b,.tip b{white-space:nowrap}
+.kicker{font-weight:700;color:var(--maple);margin:0 0 4px}
+.lead{font-size:1.3rem;max-width:62ch}
+.lcards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+.lcard{background:#fff;border-radius:18px;padding:16px 18px;border:2px solid var(--soft)}
+.lh{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:2.2rem;line-height:1.1;margin-bottom:6px}
+.lcard p{font-size:1.15rem}
+.exs,.pairs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.exs span,.pairs span{background:var(--soft);border-radius:10px;padding:.2em .7em;font-size:1.35rem;font-weight:700}
+.exs b,.pairs b,.syl b,.cw b{color:var(--maple)}
+.tip{background:var(--soft);border-radius:14px;padding:12px 16px;font-size:1.15rem}
+.lsvg{width:min(420px,100%);display:block;margin:10px 0;border:2px solid var(--soft);border-radius:14px}
+.lsteps{font-size:1.15rem;line-height:1.7;padding-left:1.4em}
+.codegrid{display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start;margin-top:14px}
+.codecard{text-align:center;background:#fff;border-radius:18px;padding:16px;border:2px solid var(--soft);margin-bottom:12px}
+.codecard .pic{font-size:5rem;line-height:1.1}
+.cw{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:3rem;line-height:1.2;margin:4px 0;letter-spacing:.03em}
+.cw .gap{display:inline-block;min-width:1.4em}
+.hint{font-size:1.3rem}
+.blankin{width:2.2em;font:inherit;text-align:center;border:0;border-bottom:4px solid var(--maple);background:#FFF1D2;border-radius:8px 8px 0 0;color:var(--maple);padding:0 .05em;margin:0 .05em}
+.blankin.ok{background:#d4ebc1;border-color:var(--moss);color:var(--moss)}
+.blankin.no{background:#f6cbc0}
+.bonus{display:flex;flex-direction:column;gap:6px;font-weight:700;margin-top:10px}
+.bonus input{font:inherit;font-size:1.4rem;padding:.4em .7em;border-radius:12px;border:2px solid #cbb592;max-width:320px;color:var(--bark)}
+@media (max-width:820px){ .lcards,.codegrid{grid-template-columns:1fr} .cw{font-size:2.4rem} }
 .clue{font-size:1.6rem;font-weight:700;margin:12px 0 14px;max-width:46ch}
 .tally{display:flex;gap:16px;font-size:1.15rem;font-weight:700}
 .reveal{margin-top:14px;padding:14px 18px;border-radius:16px;background:var(--soft);font-size:1.15rem}
@@ -242,7 +268,7 @@ const STAGES = [
   {id:'fib',   short:'Witnesses', icon:'🗣️', min:5},
   {id:'sort',  short:'Root Door', icon:'🚪', min:3},
   {id:'dice',  short:'Owl’s Journal', icon:'📓', min:3},
-  {id:'spy',   short:'Spy Report', icon:'🕵️', min:4},
+  {id:'spy',   short:'Code Wheel', icon:'🦝', min:4},
   {id:'sky',   short:'Star Map', icon:'🌙', min:5},
   {id:'wrap',  short:'The Lock', icon:'🔓', min:0}
 ];
@@ -294,7 +320,7 @@ const STORY = {
   fib:'🗣️ The forest witnesses are talking. Listen to the Forest Field Guide, then decide: is the witness telling the truth, or telling a fib?',
   sort:'🚪 A secret door in Hollow Oak’s roots has a sound lock. Sort the oi and oy words to open it.',
   dice:'📓 Owl saw everything yesterday, but Owl’s journal is stuck in the present. Flip each verb into the past to read what happened.',
-  spy:'🦝 Ranger Raccoon needs a secret report. Use both code words so only detectives can read it.',
+  spy:'🦝 Ranger Raccoon’s secret code words are missing a sound! Spin the code wheel and type oi or oy to decode each word.',
   sky:'🌙 Owl’s last clue: “The stash is under the W in the sky, beside the tallest tree.” Map the night sky and mark where to dig.',
   wrap:'🔓 Five letters, one lock. Let’s see if the case is solved!'
 };
@@ -321,8 +347,71 @@ const VERBS = [null,
   {p:'eat',  past:'ate',  opts:['ate','eated','ated'],   t:'Today the deer eats an apple.',     y:['Yesterday the deer','an apple.']},
   {p:'hide', past:'hid',  opts:['hid','hided','hidded'], t:'Today the raccoon hides in a log.', y:['Yesterday the raccoon','in a log.']}
 ];
-const OI_WHEEL = ['soil','coin','point','noise','moist','spoil','join','foil'];
-const OY_WHEEL = ['joy','toy','enjoy','decoy','royal','loyal','boy','annoy'];
+const CODE_WORDS = [
+  {w:'toy',     pre:'t',    post:'',     sp:'oy', pic:'🧸', syl:'toy',     hint:'A teddy bear is my favorite {w}.'},
+  {w:'coin',    pre:'c',    post:'n',    sp:'oi', pic:'🪙', syl:'coin',    hint:'I found a shiny {w} in the leaves.'},
+  {w:'royal',   pre:'r',    post:'al',   sp:'oy', pic:'👑', syl:'roy·al',  hint:'The king wears a {w} crown.'},
+  {w:'point',   pre:'p',    post:'nt',   sp:'oi', pic:'👉', syl:'point',   hint:'{W} to the tallest tree.'},
+  {w:'cowboy',  pre:'cowb', post:'',     sp:'oy', pic:'🤠', syl:'cow·boy', hint:'The {w} rides his horse.'},
+  {w:'boiling', pre:'b',    post:'ling', sp:'oi', pic:'🫖', syl:'boil·ing',hint:'The water in the pot is {w}.'},
+  {w:'enjoy',   pre:'enj',  post:'',     sp:'oy', pic:'😊', syl:'en·joy',  hint:'I {w} jumping in the leaves.'},
+  {w:'noise',   pre:'n',    post:'se',   sp:'oi', pic:'📢', syl:'noise',   hint:'That was a loud {w}!'},
+  {w:'voyage',  pre:'v',    post:'age',  sp:'oy', pic:'🚢', syl:'voy·age', hint:'The ship sails on a long {w}.'},
+  {w:'avoid',   pre:'av',   post:'d',    sp:'oi', pic:'🚧', syl:'a·void',  hint:'Walk around the puddle to {w} it.'},
+  {w:'boy',     pre:'b',    post:'',     sp:'oy', pic:'👦', syl:'boy',     hint:'The {w} rakes the leaves.'},
+  {w:'voice',   pre:'v',    post:'ce',   sp:'oi', pic:'🗣️', syl:'voice',   hint:'Use a quiet {w} in the library.'}
+];
+const CODE_COLS = ['#C2412D','#E6A532','#3F6E99','#557530'];
+function blankWord(c, fill){ return `${esc(c.pre)}<span class="gap">${fill ? `<b>${c.sp}</b>` : '__'}</span>${esc(c.post)}`; }
+function hintHTML(c, fill){
+  const cap = c.hint.startsWith('{W}');
+  const word = blankWord(c, fill);
+  return esc(c.hint.replace(/\{[wW]\}/,'@@')).replace('@@', cap ? word.replace(/^([a-z])/, m=>m.toUpperCase()) : word);
+}
+function whyHTML(c){
+  const syl = c.syl.split('·').map(part => part.includes(c.sp) ? part.replace(c.sp, `<b>${c.sp}</b>`) : part).join('·');
+  return c.sp==='oi'
+    ? `In <span class="syl">${syl}</span>, <b>oi</b> is in the middle of its syllable. A sound comes right after it.`
+    : `In <span class="syl">${syl}</span>, <b>oy</b> is at the end of its syllable. Nothing comes after it in that part.`;
+}
+const LESSONS = {
+  sort: {title:'Two ways to spell the /oi/ sound', html:`
+    <p class="lead">The /oi/ sound (like in “oink”) can be spelled <b>oi</b> or <b>oy</b>. Where the sound sits in the syllable tells you which one to use.</p>
+    <div class="lcards">
+      <div class="lcard"><div class="lh">🎯 oi</div><p>Use <b>oi</b> in the <b>middle</b> of a syllable. Another sound comes right after it.</p>
+        <div class="exs"><span>c<b>oi</b>n</span><span>s<b>oi</b>l</span><span>p<b>oi</b>nt</span><span>b<b>oi</b>l·ing</span></div></div>
+      <div class="lcard"><div class="lh">🏁 oy</div><p>Use <b>oy</b> at the <b>end</b> of a syllable. That part of the word stops right after it.</p>
+        <div class="exs"><span>j<b>oy</b></span><span>t<b>oy</b></span><span>en·j<b>oy</b></span><span>r<b>oy</b>·al</span></div></div>
+    </div>
+    <p class="tip">🔎 Detective tip: Say the word slowly, one part at a time. Is there another sound right after /oi/? Use <b>oi</b>. Does that part stop? Use <b>oy</b>.</p>`},
+  dice: {title:'Not every past tense verb ends in -ed', html:`
+    <p class="lead">Past tense tells about something that already happened. Lots of verbs just add <b>-ed</b>. Some verbs are time travelers. They change in their own way!</p>
+    <div class="lcards">
+      <div class="lcard"><div class="lh">➕ Add -ed</div>
+        <div class="pairs"><span>rake → rak<b>ed</b></span><span>jump → jump<b>ed</b></span><span>play → play<b>ed</b></span></div></div>
+      <div class="lcard"><div class="lh">⏳ Time travelers</div>
+        <div class="pairs"><span>take → <b>took</b></span><span>sit → <b>sat</b></span><span>see → <b>saw</b></span><span>give → <b>gave</b></span><span>eat → <b>ate</b></span><span>hide → <b>hid</b></span></div></div>
+    </div>
+    <p class="tip">🔎 Detective tip: Say it out loud. “Yesterday the squirrel taked an acorn” sounds wrong! When <b>-ed</b> sounds wrong, the verb changes in a different way.</p>`},
+  spy: {title:'Missing sound code', html:`
+    <p class="lead">Ranger Raccoon’s code words lost their /oi/ sound. Look at the picture, read the clue, and type <b>oi</b> or <b>oy</b> in the blank.</p>
+    <div class="lcards">
+      <div class="lcard"><div class="lh">🪙 c__n</div><p>The /oi/ sound has an <b>n</b> right after it, so it’s in the middle: c<b>oi</b>n.</p></div>
+      <div class="lcard"><div class="lh">👑 r__al</div><p>Split it: roy·al. The first part stops after /oi/, so it’s the end: r<b>oy</b>al.</p></div>
+    </div>
+    <p class="tip">⭐ Bonus: after you fill the blank, type the whole word in the bonus box.</p>`},
+  sky: {title:'What is a label?', html:`
+    <p class="lead">A <b>label</b> is a word that names something in a picture. An <b>arrow</b> points from the label to the thing it names. Scientists and authors use labels so readers know what they’re looking at.</p>
+    <svg viewBox="0 0 360 160" class="lsvg" role="img" aria-label="Example: the label Leaf with an arrow pointing to a leaf">
+      <rect width="360" height="160" rx="14" fill="#fff"/>
+      <g transform="translate(255,88) rotate(-20)"><path d="M-55 0 Q0 -45 55 0 Q0 45 -55 0Z" fill="#E57B26" stroke="#8f4a17" stroke-width="3"/><path d="M-68 0 L45 0" stroke="#8f4a17" stroke-width="3"/></g>
+      <rect x="20" y="22" width="84" height="38" rx="19" fill="#fff" stroke="#C2412D" stroke-width="3"/>
+      <text x="62" y="47" text-anchor="middle" font-size="20" font-weight="700" fill="#3A2619" font-family="Atkinson Hyperlegible, sans-serif">Leaf</text>
+      <line x1="106" y1="47" x2="186" y2="81" stroke="#C2412D" stroke-width="5" stroke-linecap="round"/>
+      <polygon points="202,88 178,88 186,71" fill="#C2412D"/>
+    </svg>
+    <ol class="lsteps"><li>Tap <b>🏷️ Label</b>, pick a word, then tap the picture to place it.</li><li>Tap <b>➡️ Arrow</b> and drag from the label to the thing it names.</li><li>Find the W of stars. Put <b>🌰 Dig here!</b> under it, beside the tallest tree.</li></ol>`}
+};
 const SKY_W = 900, SKY_H = 560;
 const COLORS = [
   ['#1F2A5A','Night blue'],['#4B2E6B','Dusk purple'],['#6FA8DC','Sky blue'],['#F5D547','Star yellow'],
@@ -330,7 +419,7 @@ const COLORS = [
   ['#6B4226','Bark brown'],['#4F7A2C','Moss green'],['#8C8C8C','Gray'],['#1A1A1A','Black']
 ];
 const TOOLS = [['pen','✏️','Pen'],['fill','🪣','Fill'],['arrow','➡️','Arrow'],['label','🏷️','Label'],['eraser','🧽','Eraser']];
-const STAMPS = ['Moon reflects sunlight','Constellation','Star','Atmosphere','Fall tree','🌰 Dig here!'];
+const STAMPS = ['Star','Moon','Tree','Leaf','🌰 Dig here!'];
 const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
 
 /* ============ HELPERS ============ */
@@ -401,10 +490,10 @@ function showLanding(){
    TEACHER (HOST)
    ================================================================ */
 const H = {peer:null, code:null, online:false, students:new Map(), joinCount:0, mounted:null, trailFor:null,
-           showNames:false, raf:0, dotT:null, sortStart:null, sortTick:null, wheelRot:{oi:0,oy:0}, spinning:{oi:false,oy:false},
+           showNames:false, raf:0, dotT:null, sortStart:null, sortTick:null, codeRot:0, codeSpinning:false, codeUsed:[],
            rolling:false, hidePara:false, skyView:null, skySpotImg:null, galKey:''};
 let S = {stage:'lobby', fibI:0, fibPhase:'listen', fibText:false, fibRev:false, sortRound:1, sortGo:0, sortRev:false,
-         letters:{}, unlocked:false, diceId:0, diceN:0, diceRev:false, spyId:1, spyOi:null, spyOy:null, spySpin:null, spot:null, skySpot:null};
+         letters:{}, unlocked:false, diceId:0, diceN:0, diceRev:false, spyId:0, spyIdx:-1, spySpin:false, spyRev:false, lesson:null, skySpot:null};
 
 function startHost(){
   if(typeof Peer === 'undefined'){ app.innerHTML = `<div class="center"><p class="status">PeerJS didn’t load. Check the internet connection and reload.</p></div>`; return; }
@@ -443,7 +532,7 @@ function setS(p){ Object.assign(S, p); broadcast({t:'state', S}); hostRender(); 
 function dotList(){ return online().filter(s=>s.dot && s.dot.q===S.fibI).map(s=>[s.dot.x, s.dot.y]); }
 function queueDots(){ if(H.dotT) return; H.dotT = setTimeout(()=>{ H.dotT=null; broadcast({t:'dots', d:dotList()}); }, 250); }
 function nextStage(){ const i = STAGES.findIndex(s=>s.id===S.stage); if(i < STAGES.length-1) goStage(STAGES[i+1].id); }
-function goStage(id){ setS({stage:id}); if(id==='fib') queueDots(); }
+function goStage(id){ setS({stage:id, lesson: LESSONS[id] ? id : null}); if(id==='fib') queueDots(); }
 
 function hostMsg(conn, m){
   if(!m || typeof m !== 'object') return;
@@ -469,8 +558,8 @@ function hostMsg(conn, m){
     case 'dice':
       if(m.id===S.diceId && !S.diceRev){ st.dice={id:m.id, choice:String(m.choice).slice(0,20)}; hostRender(); }
       break;
-    case 'spy':
-      if(m.id===S.spyId){ st.spy={id:m.id, text:String(m.text||'').slice(0,300)}; hostRender(); }
+    case 'code':
+      if(m.id===S.spyId && !S.spyRev){ st.code={id:m.id, part:String(m.part||'').slice(0,4).toLowerCase(), whole:String(m.whole||'').slice(0,20).trim().toLowerCase()}; hostRender(); }
       break;
     case 'sky':
       if(typeof m.img==='string' && m.img.startsWith('data:image/') && m.img.length < 1500000){ st.sky={img:m.img, at:Date.now()}; hostRender(); }
@@ -494,6 +583,7 @@ function hostShell(){
   $('#tTrail').onclick = e => { const b = e.target.closest('[data-go]'); if(b) goStage(b.dataset.go); };
   $('#tMain').addEventListener('click', e => { if(e.target.closest('[data-next]')) nextStage(); });
   $('#tCase').addEventListener('click', e => {
+    if(e.target.closest('[data-lesson]')){ setS({lesson:S.stage}); return; }
     const b = e.target.closest('[data-award]'); if(!b) return;
     const st = b.dataset.award, on = !S.letters[st];
     setS({letters:{...S.letters, [st]:on}});
@@ -507,17 +597,20 @@ function hostPaint(){
   $('#tRoom').innerHTML = H.online ? `Room code <b>${H.code}</b>` : 'Opening room…';
   $('#tCount').textContent = `${n} explorer${n===1?'':'s'} here`;
   if(H.trailFor !== S.stage){ H.trailFor = S.stage; $('#tTrail').innerHTML = trailHTML(S.stage, true); }
-  const ck = S.stage + JSON.stringify(S.letters) + (H.fresh||'');
+  const ck = S.stage + JSON.stringify(S.letters) + (H.fresh||'') + S.lesson;
   if(H.caseKey !== ck){
     H.caseKey = ck;
     const L = LOCK.find(x=>x[0]===S.stage);
     $('#tCase').innerHTML = lockHTML(S.letters, H.fresh) + `<p>${esc(STORY[S.stage])}</p>`
+      + (LESSONS[S.stage] && S.lesson!==S.stage ? `<button class="btn alt light" data-lesson type="button">📖 Lesson</button>` : '')
       + (L ? `<button class="btn ${S.letters[L[0]]?'alt light':'gold'}" data-award="${L[0]}" type="button">${S.letters[L[0]] ? '✓ Letter '+L[1]+' earned (undo)' : 'Award letter '+L[1]}</button>` : '');
     H.fresh = null;
   }
   const main = $('#tMain');
-  if(H.mounted !== S.stage){ stopSpeech(); H.mounted = S.stage; main.innerHTML=''; TV[S.stage].mount(main); }
-  TV[S.stage].update(main);
+  const vk = (S.lesson===S.stage && LESSONS[S.stage]) ? 'L:'+S.stage : S.stage;
+  const view = vk.startsWith('L:') ? LessonT : TV[S.stage];
+  if(H.mounted !== vk){ stopSpeech(); H.mounted = vk; main.innerHTML=''; view.mount(main); }
+  view.update(main);
 }
 
 const TV = {};
@@ -642,7 +735,7 @@ function sortLeft(){ if(S.sortRev) return ''; if(!S.sortGo || !H.sortStart) retu
 TV.dice = {
   mount(el){
     el.innerHTML = `<section class="panel">
-      <div class="row between wrap"><div><h2>Owl’s Journal: Time-Travel Dice</h2><p class="sub">Roll the die. Students flip the verb into the past by tapping the right word.</p></div><button class="btn alt" data-next type="button">Go to the Spy Report</button></div>
+      <div class="row between wrap"><div><h2>Owl’s Journal: Time-Travel Dice</h2><p class="sub">Roll the die. Students flip the verb into the past by tapping the right word.</p></div><button class="btn alt" data-next type="button">Go to the Code Wheel</button></div>
       <div class="dice-grid">
         <ol class="verbs" id="dVerbs">${VERBS.slice(1).map(v=>`<li>${v.p}</li>`).join('')}</ol>
         <div class="dice-center"><div id="dDie">${dieHTML(0,true)}</div><button class="btn big" id="dRoll" type="button">Roll the die</button></div>
@@ -670,70 +763,78 @@ TV.dice = {
   }
 };
 
+const LessonT = {
+  mount(el){
+    const L = LESSONS[S.stage];
+    el.innerHTML = `<section class="panel lesson"><p class="kicker">📖 Detective training</p><h2>${esc(L.title)}</h2>${L.html}
+      <div class="row end mt"><button class="btn big" id="lStart" type="button">Start the activity</button></div></section>`;
+    $('#lStart', el).onclick = () => setS({lesson:null});
+  },
+  update(){}
+};
+
 TV.spy = {
   mount(el){
     el.innerHTML = `<section class="panel">
-      <div class="row between wrap"><div><h2>Royal Soil Spy Code</h2><p class="sub">Spin both wheels. Detectives write one report sentence for Ranger Raccoon that uses both code words.</p></div>
-        <div class="row gap wrap"><button class="btn alt" id="yNew" type="button">New mission</button><button class="btn alt" data-next type="button">Go to the Star Map</button></div></div>
-      <div class="wheels">
-        <div class="wheelbox"><canvas id="wOi" width="300" height="300" aria-label="oi word wheel"></canvas><button class="btn" id="bOi" type="button">Spin the oi wheel</button><div class="codeword" id="cOi"></div></div>
-        <div class="wheelbox"><canvas id="wOy" width="300" height="300" aria-label="oy word wheel"></canvas><button class="btn lake" id="bOy" type="button">Spin the oy wheel</button><div class="codeword" id="cOy"></div></div>
-      </div>
-      <div id="ySpot"></div>
-      <h3 id="yCount"></h3>
-      <div class="reports" id="yReports"></div>
-    </section>`;
-    drawWheel($('#wOi', el), OI_WHEEL, H.wheelRot.oi, ['#C2412D','#E6A532']);
-    drawWheel($('#wOy', el), OY_WHEEL, H.wheelRot.oy, ['#3F6E99','#557530']);
-    $('#bOi', el).onclick = () => spin('oi');
-    $('#bOy', el).onclick = () => spin('oy');
-    $('#yNew', el).onclick = () => setS({spyId:S.spyId+1, spyOi:null, spyOy:null, spot:null});
-    $('#yReports', el).onclick = e => {
-      const b = e.target.closest('[data-spot]'); if(!b) return;
-      const st = H.students.get(b.dataset.spot); if(!st || !st.spy) return;
-      setS({spot:{text:st.spy.text, label: H.showNames ? st.name : 'Agent '+st.n}});
-    };
-    $('#ySpot', el).onclick = e => { if(e.target.closest('#yClear')) setS({spot:null}); };
+      <div class="row between wrap"><div><h2>Ranger Raccoon’s Code Wheel</h2><p class="sub">Spin the wheel. Students type <b>oi</b> or <b>oy</b> in the blank, then type the whole word for a bonus.</p></div>
+        <button class="btn alt" data-next type="button">Go to the Star Map</button></div>
+      <div class="codegrid">
+        <div class="wheelbox"><canvas id="wCode" width="320" height="320" aria-label="Code wheel"></canvas><button class="btn big" id="bSpin" type="button">Spin the code wheel</button></div>
+        <div id="cShow"></div>
+      </div></section>`;
+    drawCodeWheel($('#wCode', el), H.codeRot);
+    $('#bSpin', el).onclick = spinCode;
+    $('#cShow', el).onclick = e => { if(e.target.closest('#cRev')) setS({spyRev:!S.spyRev}); };
   },
   update(el){
-    $('#cOi', el).textContent = S.spyOi || ' ';
-    $('#cOy', el).textContent = S.spyOy || ' ';
-    $('#bOi', el).disabled = H.spinning.oi; $('#bOy', el).disabled = H.spinning.oy;
-    $('#ySpot', el).innerHTML = S.spot ? `<div class="spotbox"><span>📣 On everyone’s screen: “${esc(S.spot.text)}” (${esc(S.spot.label)})</span><button class="btn alt" id="yClear" type="button">Stop showing</button></div>` : '';
-    const reps = online().filter(s=>s.spy && s.spy.id===S.spyId && s.spy.text.trim());
-    $('#yCount', el).textContent = `Spy reports: ${reps.length} of ${online().length}`;
-    $('#yReports', el).innerHTML = reps.map(s=>{
-      const chk = [S.spyOi, S.spyOy].filter(Boolean).map(w=>`<span class="chk ${wordUsed(s.spy.text,w)?'ok':''}">${wordUsed(s.spy.text,w)?'✓':'✗'} ${esc(w)}</span>`).join('');
-      return `<div class="rep"><span class="who">${esc(label(s,'Agent'))}</span><p>${esc(s.spy.text)}</p><div class="row between"><div class="checks">${chk}</div><button class="btn gold" data-spot="${esc(s.sid)}" type="button">Spotlight</button></div></div>`;
-    }).join('');
+    $('#bSpin', el).disabled = H.codeSpinning;
+    $('#bSpin', el).textContent = S.spyIdx < 0 ? 'Spin the code wheel' : 'Spin again';
+    const box = $('#cShow', el);
+    if(S.spySpin){ box.innerHTML = `<div class="codecard"><div class="pic">🔐</div><p class="cw">Decoding…</p></div>`; return; }
+    const c = CODE_WORDS[S.spyIdx];
+    if(!c){ box.innerHTML = `<div class="empty">Spin the wheel to get the first code word.</div>`; return; }
+    const ans = online().filter(s=>s.code && s.code.id===S.spyId && s.code.part);
+    const max = Math.max(1, online().length);
+    const count = v => ans.filter(s=>s.code.part===v).length;
+    const other = ans.filter(s=>s.code.part!=='oi' && s.code.part!=='oy').length;
+    const bonus = ans.filter(s=>s.code.whole===c.w).length;
+    const bar = (lab, n, right) => `<div class="bar ${right?'right':''}"><span>${lab}${right?' ✓':''}</span><div class="track"><div class="fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`;
+    box.innerHTML = `<div class="codecard"><div class="pic">${c.pic}</div><p class="cw">${blankWord(c, S.spyRev)}</p><p class="hint">${hintHTML(c, S.spyRev)}</p></div>
+      ${bar('oi', count('oi'), S.spyRev && c.sp==='oi')}${bar('oy', count('oy'), S.spyRev && c.sp==='oy')}${other ? bar('other', other, false) : ''}
+      <p class="sub">${ans.length} of ${online().length} answered. ⭐ ${bonus} typed the whole word correctly.</p>
+      ${S.spyRev ? `<p class="reveal">${whyHTML(c)}</p>` : ''}
+      <div class="row end mt"><button class="btn gold" id="cRev" type="button">${S.spyRev ? 'Hide answer' : 'Reveal answer'}</button></div>`;
   }
 };
-function drawWheel(cv, words, rot, cols){
-  const c = cv.getContext('2d'), R = 145, cx = 150, cy = 150, seg = Math.PI*2/words.length;
-  c.clearRect(0,0,300,300);
-  words.forEach((w,i)=>{
+function drawCodeWheel(cv, rot){
+  const c = cv.getContext('2d'), n = CODE_WORDS.length, R = 155, cx = 160, cy = 160, seg = Math.PI*2/n;
+  c.clearRect(0,0,320,320);
+  CODE_WORDS.forEach((w,i)=>{
     c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,R,rot+i*seg,rot+(i+1)*seg); c.closePath();
-    c.fillStyle = cols[i%2]; c.fill(); c.strokeStyle='#FFF6E6'; c.lineWidth=3; c.stroke();
-    c.save(); c.translate(cx,cy); c.rotate(rot+(i+.5)*seg); c.textAlign='right'; c.textBaseline='middle';
-    c.fillStyle = cols[i%2]==='#E6A532' ? '#3A2619' : '#fff'; c.font = 'bold 22px "Baloo 2", sans-serif'; c.fillText(w, R-14, 1); c.restore();
+    c.fillStyle = CODE_COLS[i%4]; c.fill(); c.strokeStyle='#FFF6E6'; c.lineWidth=3; c.stroke();
+    const a = rot+(i+.5)*seg;
+    c.save(); c.translate(cx+Math.cos(a)*R*.7, cy+Math.sin(a)*R*.7); c.rotate(a+Math.PI/2);
+    c.font = '30px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(w.pic, 0, 0); c.restore();
   });
-  c.beginPath(); c.arc(cx,cy,20,0,Math.PI*2); c.fillStyle='#3A2619'; c.fill();
+  c.beginPath(); c.arc(cx,cy,22,0,Math.PI*2); c.fillStyle='#3A2619'; c.fill();
+  c.font='20px sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('🦝',cx,cy+1);
 }
-function spin(kind){
-  if(H.spinning[kind]) return;
-  const words = kind==='oi' ? OI_WHEEL : OY_WHEEL, cols = kind==='oi' ? ['#C2412D','#E6A532'] : ['#3F6E99','#557530'];
-  const seg = Math.PI*2/words.length, idx = Math.floor(Math.random()*words.length);
-  const start = H.wheelRot[kind];
-  const target = 1.5*Math.PI - (idx+.5)*seg + (Math.random()-.5)*seg*.6;
-  const k = Math.ceil((start + 8*Math.PI - target)/(2*Math.PI));
-  const end = target + 2*Math.PI*k, dur = 3200, t0 = performance.now();
-  H.spinning[kind] = true; setS({spySpin:kind, ['spy'+(kind==='oi'?'Oi':'Oy')]:null});
+function spinCode(){
+  if(H.codeSpinning) return;
+  const n = CODE_WORDS.length, seg = Math.PI*2/n;
+  let pool = CODE_WORDS.map((_,i)=>i).filter(i=>!H.codeUsed.includes(i));
+  if(!pool.length){ H.codeUsed = []; pool = CODE_WORDS.map((_,i)=>i).filter(i=>i!==S.spyIdx); }
+  const idx = pool[Math.floor(Math.random()*pool.length)]; H.codeUsed.push(idx);
+  const start = H.codeRot, target = 1.5*Math.PI - (idx+.5)*seg + (Math.random()-.5)*seg*.6;
+  const k = Math.ceil((start + 8*Math.PI - target)/(2*Math.PI)), end = target + 2*Math.PI*k, dur = 3200, t0 = performance.now();
+  H.codeSpinning = true; setS({spySpin:true, spyRev:false});
   const frame = now => {
-    const p = Math.min(1, (now-t0)/dur), e = 1 - Math.pow(1-p, 3);
-    H.wheelRot[kind] = start + (end-start)*e;
-    const cv = $(kind==='oi' ? '#wOi' : '#wOy'); if(cv) drawWheel(cv, words, H.wheelRot[kind], cols);
+    const p = Math.min(1,(now-t0)/dur), e = 1-Math.pow(1-p,3);
+    H.codeRot = start + (end-start)*e;
+    const cv = $('#wCode'); if(cv) drawCodeWheel(cv, H.codeRot);
     if(p < 1) requestAnimationFrame(frame);
-    else { H.wheelRot[kind] = end % (2*Math.PI); H.spinning[kind] = false; setS({spySpin:null, ['spy'+(kind==='oi'?'Oi':'Oy')]:words[idx]}); }
+    else { H.codeRot = end % (2*Math.PI); H.codeSpinning = false; setS({spySpin:false, spyId:S.spyId+1, spyIdx:idx, spyRev:false}); }
   };
   requestAnimationFrame(frame);
 }
@@ -742,7 +843,7 @@ TV.sky = {
   mount(el){
     H.galKey = '';
     el.innerHTML = `<section class="panel">
-      <div class="row between wrap"><div><h2>Star Map: Autumn Night Sky</h2><p class="sub">Students color the scene, draw 3 arrows, add 3 labels (moon reflects sunlight, constellation, atmosphere), and mark where to dig with the “🌰 Dig here!” label. The W of stars is Cassiopeia. Tap a picture to look closer or share it.</p></div><button class="btn alt" data-next type="button">Go to the lock</button></div>
+      <div class="row between wrap"><div><h2>Star Map: Autumn Night Sky</h2><p class="sub">Students color the scene, add labels (star, moon, tree, leaf) with arrows, and mark where to dig with the “🌰 Dig here!” label. The W of stars is Cassiopeia. Tap a picture to look closer or share it.</p></div><button class="btn alt" data-next type="button">Go to the lock</button></div>
       <h3 id="kCount" class="mt"></h3>
       <div class="sky-t mt"><div class="gallery" id="kGal"></div><div class="viewer" id="kView"></div></div>
     </section>`;
@@ -792,7 +893,7 @@ TV.wrap = {
    STUDENT
    ================================================================ */
 const P = {peer:null, conn:null, sid:null, name:'', room:'', joined:false, retryT:null, mounted:null,
-           dot:null, dots:[], sort:null, sortTick:null, diceChoice:null, diceFor:0, spyText:'', spySentFor:0,
+           dot:null, dots:[], sort:null, sortTick:null, diceChoice:null, diceFor:0, code:{part:'',whole:''}, codeFor:-1, codeT:null,
            skyTool:null, skyUndo:[], skyCtx:null, skyImage:null, spotImg:null, spotClosed:null};
 let SS = null;
 
@@ -867,7 +968,7 @@ function sMsg(m){
     if(SS.sortGo && P.sort.go !== SS.sortGo){ P.sort.go = SS.sortGo; P.sort.place = {}; P.sort.sel = null; P.sort.done = false; P.sort.end = Date.now() + SORT_SECONDS*1000; startSortTick(); }
     if(SS.sortRev && P.sort.go && !P.sort.done) submitSort();
     if(P.diceFor !== SS.diceId){ P.diceFor = SS.diceId; P.diceChoice = null; }
-    if(P.spyFor !== SS.spyId){ P.spyFor = SS.spyId; P.spyText = ''; P.spySentFor = 0; }
+    if(P.codeFor !== SS.spyId){ P.codeFor = SS.spyId; P.code = {part:'', whole:''}; }
     sRender();
   } else if(m.t === 'dots'){
     P.dots = Array.isArray(m.d) ? m.d : [];
@@ -893,11 +994,13 @@ function sRender(){
   const ck = SS.stage + JSON.stringify(SS.letters||{}) + (P.fresh||'');
   if(P.caseKey !== ck){ P.caseKey = ck; $('#sCase').innerHTML = lockHTML(SS.letters, P.fresh) + `<p>${esc(STORY[SS.stage])}</p>`; P.fresh = null; }
   const main = $('#sMain');
-  if(P.mounted !== SS.stage){
+  const vk = (SS.lesson===SS.stage && LESSONS[SS.stage]) ? 'L:'+SS.stage : SS.stage;
+  const view = vk.startsWith('L:') ? LessonS : SV[SS.stage];
+  if(P.mounted !== vk){
     if(P.mounted === 'sky' && P.skyCtx){ try{ P.skyImage = P.skyCtx.getImageData(0,0,SKY_W,SKY_H); }catch(e){} }
-    stopSpeech(); P.mounted = SS.stage; main.innerHTML = ''; SV[SS.stage].mount(main); window.scrollTo(0,0);
+    stopSpeech(); P.mounted = vk; main.innerHTML = ''; view.mount(main); window.scrollTo(0,0);
   }
-  SV[SS.stage].update(main);
+  view.update(main);
   sOverlay();
 }
 function sOverlay(){
@@ -1028,35 +1131,46 @@ SV.dice = {
   }
 };
 
+const LessonS = {
+  mount(el){
+    const L = LESSONS[SS.stage];
+    el.innerHTML = `<section class="panel lesson"><p class="kicker">📖 Detective training</p><h2>${esc(L.title)}</h2>${L.html}
+      <p class="sub mt">Your teacher will start the activity soon.</p></section>`;
+  },
+  update(){}
+};
+
 SV.spy = {
   mount(el){
-    el.innerHTML = `<section class="panel">
-      <h2>Royal Soil Spy Code</h2>
-      <div id="ySpot"></div>
-      <div class="codes" id="yCodes"></div>
-      <p class="sub" id="yHelp"></p>
-      <textarea id="yText" maxlength="300" placeholder="Report for Ranger Raccoon: …" aria-label="Your spy report sentence"></textarea>
-      <div class="row between wrap mt"><div class="checks" id="yChk"></div><button class="btn" id="ySend" type="button">Send my spy report</button></div>
-      <p class="sub" id="yStatus"></p>
-    </section>`;
-    const ta = $('#yText', el); ta.value = P.spyText;
-    ta.oninput = () => { P.spyText = ta.value; SV.spy.update(el); };
-    $('#ySend', el).onclick = () => {
-      if(!P.spyText.trim()) { toast('Write your spy report first.'); return; }
-      if(sendHost({t:'spy', id:SS.spyId, text:P.spyText.trim()})){ P.spySentFor = SS.spyId; P.spySentText = P.spyText.trim(); toast('Report sent to headquarters!'); }
-      else toast('Not connected. Try again in a moment.');
-      SV.spy.update(el);
-    };
+    P.codeKey = '';
+    el.innerHTML = `<section class="panel"><h2>🦝 Ranger Raccoon’s Code</h2><div id="cBox"></div></section>`;
+    const box = $('#cBox', el);
+    box.addEventListener('input', e => {
+      if(e.target.id === 'cPart'){ e.target.value = e.target.value.toLowerCase().replace(/[^a-z]/g,''); P.code.part = e.target.value; }
+      else if(e.target.id === 'cWhole'){ P.code.whole = e.target.value.slice(0,20); }
+      else return;
+      const st = $('#cStatus', el); if(st) st.textContent = 'Saving…';
+      clearTimeout(P.codeT);
+      P.codeT = setTimeout(() => { const ok = sendHost({t:'code', id:SS.spyId, part:P.code.part, whole:P.code.whole}); const s2 = $('#cStatus', el); if(s2) s2.textContent = ok ? '🌰 Sent to Ranger Raccoon' : 'Not connected yet. Keep your answer, it will send when you type again.'; }, 400);
+    });
   },
   update(el){
-    const words = [SS.spyOi, SS.spyOy];
-    $('#ySpot', el).innerHTML = SS.spot ? `<div class="spotbox"><span>📣 Featured report from ${esc(SS.spot.label)}: “${esc(SS.spot.text)}”</span></div>` : '';
-    $('#yCodes', el).innerHTML = SS.spySpin && !words.some(Boolean) ? `<span class="code">🔐 Decoding…</span>`
-      : words.map((w,i)=> w ? `<span class="code">${esc(w)}</span>` : `<span class="code" style="opacity:.5">${SS.spySpin===(i?'oy':'oi')?'🔐 Decoding…':'? ? ?'}</span>`).join('');
-    $('#yHelp', el).textContent = words.every(Boolean) ? 'Write one report sentence for Ranger Raccoon that uses both code words.' : 'Your secret code words are on the way. You can start thinking now!';
-    $('#yChk', el).innerHTML = words.filter(Boolean).map(w=>{ const ok = wordUsed(P.spyText, w); return `<span class="chk ${ok?'ok':''}">${ok?'✓':'✗'} ${esc(w)}</span>`; }).join('');
-    const sent = P.spySentFor === SS.spyId;
-    $('#yStatus', el).textContent = sent ? (P.spySentText === P.spyText.trim() ? '🌰 Sent! You can fix it and send again.' : 'You changed your report. Send it again to update it.') : '';
+    const box = $('#cBox', el), c = CODE_WORDS[SS.spyIdx];
+    const key = [SS.spyId, SS.spySpin, SS.spyRev].join('|');
+    if(key === P.codeKey) return; P.codeKey = key;
+    if(SS.spySpin){ box.innerHTML = `<div class="waitcard"><div class="big" aria-hidden="true">🔐</div><h2>Decoding…</h2><p class="sub" style="margin:auto">The code wheel is spinning!</p></div>`; return; }
+    if(!c){ box.innerHTML = `<div class="waitcard"><div class="big" aria-hidden="true">🦝</div><h2>Waiting for the code wheel…</h2><p class="sub" style="margin:auto">Get ready to type oi or oy.</p></div>`; return; }
+    const rev = SS.spyRev, right = P.code.part === c.sp;
+    box.innerHTML = `<div class="codecard">
+        <div class="pic" aria-hidden="true">${c.pic}</div>
+        <p class="cw">${esc(c.pre)}<input id="cPart" class="blankin ${rev ? (right?'ok':'no') : ''}" maxlength="2" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type oi or oy" value="${esc(P.code.part)}" ${rev?'disabled':''}>${esc(c.post)}</p>
+        <p class="hint">${hintHTML(c, false)}</p>
+      </div>
+      ${rev ? '' : '<p class="sub" style="text-align:center">Type <b>oi</b> or <b>oy</b> in the blank.</p>'}
+      <label class="bonus">⭐ Bonus: type the whole word <input id="cWhole" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(P.code.whole)}" ${rev?'disabled':''}></label>
+      <p class="sub" id="cStatus" aria-live="polite"></p>
+      ${rev ? `<div class="reveal">${right ? '🌰 Decoded! ' : ''}The word is <b>${esc(c.w)}</b>. ${whyHTML(c)}${P.code.whole.trim().toLowerCase()===c.w ? '<p>⭐ You typed the whole word correctly!</p>' : ''}</div>` : ''}`;
+    if(!rev){ const inp = $('#cPart', box); if(inp && !P.code.part) inp.focus({preventScroll:true}); }
   }
 };
 
